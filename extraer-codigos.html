@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Extraer códigos de PDF a Excel</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style/dist/xlsx.bundle.js"></script>
 <style>
   :root{
     --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0; --muted:#94a3b8;
@@ -108,6 +108,24 @@ const minLenWrap = document.getElementById('minLenWrap');
 let selectedFile = null;
 let extractedCodes = [];
 let extractedRecords = [];
+let extractedDateLabel = '';
+
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function buildDateLabel(fullText){
+  const m = fullText.match(/Ex[aá]menes desde\s+el\s+dia\s+(\d{2})\/(\d{2})\/(\d{4})\s+hata\s+el\s+dia\s+(\d{2})\/(\d{2})\/(\d{4})/i)
+    || fullText.match(/Ex[aá]menes desde\s+el\s+dia\s+(\d{2})\/(\d{2})\/(\d{4})\s+hasta\s+el\s+dia\s+(\d{2})\/(\d{2})\/(\d{4})/i);
+  if (!m) return '';
+  const [, d1, mo1, y1, d2, mo2, y2] = m;
+  const mesNombre = (mo) => MESES_ES[parseInt(mo, 10) - 1] || mo;
+  if (d1 === d2 && mo1 === mo2 && y1 === y2) {
+    return `${parseInt(d1,10)} de ${mesNombre(mo1)} ${y1}`;
+  }
+  if (mo1 === mo2 && y1 === y2) {
+    return `${parseInt(d1,10)} al ${parseInt(d2,10)} de ${mesNombre(mo1)} ${y1}`;
+  }
+  return `${d1}/${mo1}/${y1} al ${d2}/${mo2}/${y2}`;
+}
 
 modeSelect.addEventListener('change', () => {
   minLenWrap.style.display = modeSelect.value === 'generic' ? 'flex' : 'none';
@@ -220,6 +238,7 @@ processBtn.addEventListener('click', async () => {
     }
     extractedRecords = records;
     extractedCodes = records.map(r => r.codigo);
+    extractedDateLabel = buildDateLabel(fullText);
 
     if (extractedCodes.length === 0) {
       const hint = modeSelect.value === 'folio'
@@ -243,33 +262,90 @@ processBtn.addEventListener('click', async () => {
   }
 });
 
-downloadBtn.addEventListener('click', () => {
-  if (extractedRecords.length === 0) return;
-
-  // Bloques de 50 registros por par de columnas: A/B, luego C/D, luego E/F, etc.
+function buildStyledWorkbook(records, dateLabel) {
   const CHUNK_SIZE = 50;
   const chunks = [];
-  for (let i = 0; i < extractedRecords.length; i += CHUNK_SIZE) {
-    chunks.push(extractedRecords.slice(i, i + CHUNK_SIZE));
+  for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+    chunks.push(records.slice(i, i + CHUNK_SIZE));
+  }
+  if (chunks.length === 0) chunks.push([]);
+
+  const hair = { style: 'hair', color: { rgb: '000000' } };
+  const borderAll = { top: hair, bottom: hair, left: hair, right: hair };
+  const borderNoTop = { bottom: hair, left: hair, right: hair };
+
+  const STYLE_TITLE = {
+    font: { name: 'Calibri', sz: 14, bold: true },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    fill: { patternType: 'solid', fgColor: { rgb: 'EEECE1' } },
+    border: borderAll,
+    numFmt: '@'
+  };
+  const STYLE_HEADER_CODIGO = { font: { name: 'Tw Cen MT', sz: 12, bold: true }, alignment: { horizontal: 'center' }, border: borderNoTop };
+  const STYLE_HEADER_PRUEBA = { font: { name: 'Tw Cen MT', sz: 12, bold: true }, alignment: { horizontal: 'left' }, border: borderNoTop };
+  const STYLE_SPACER = { font: { name: 'Calibri', sz: 12 }, border: borderAll };
+  const STYLE_CHECKBOX = { font: { name: 'Calibri', sz: 12 }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderAll };
+  const STYLE_CODIGO = { font: { name: 'Calibri', sz: 10, bold: true }, alignment: { horizontal: 'center' }, border: borderAll };
+  const STYLE_PRUEBA = { font: { name: 'Calibri', sz: 8 }, border: borderAll };
+
+  // Diseño de columnas: primer bloque lleva casilla de verificación + Codigo + Prueba;
+  // cada bloque siguiente agrega un separador y su propio par Codigo/Prueba.
+  const colMeta = [];
+  const colWidths = [];
+  chunks.forEach((chunk, b) => {
+    if (b === 0) { colMeta.push({ type: 'checkbox' }); colWidths.push(3.875); }
+    colMeta.push({ type: 'codigo', block: b }); colWidths.push(7.75);
+    colMeta.push({ type: 'prueba', block: b }); colWidths.push(19.625);
+    if (b < chunks.length - 1) { colMeta.push({ type: 'spacer' }); colWidths.push(4); }
+  });
+
+  const ws = {};
+  const totalCols = colMeta.length;
+  const maxLen = Math.max(0, ...chunks.map(c => c.length));
+
+  for (let c = 0; c < totalCols; c++) {
+    ws[XLSX.utils.encode_cell({ r: 0, c })] = { t: 's', v: c === 0 ? (dateLabel || '') : '', s: STYLE_TITLE };
   }
 
-  const aoa = [];
-  const headerRow = [];
-  chunks.forEach(() => headerRow.push('Codigo', 'Prueba'));
-  aoa.push(headerRow);
+  colMeta.forEach((meta, c) => {
+    const addr = XLSX.utils.encode_cell({ r: 1, c });
+    if (meta.type === 'codigo') ws[addr] = { t: 's', v: 'Codigo', s: STYLE_HEADER_CODIGO };
+    else if (meta.type === 'prueba') ws[addr] = { t: 's', v: 'Prueba', s: STYLE_HEADER_PRUEBA };
+    else ws[addr] = { t: 's', v: '', s: STYLE_SPACER };
+  });
 
-  for (let r = 0; r < CHUNK_SIZE; r++) {
-    const row = [];
-    chunks.forEach(chunk => {
-      const rec = chunk[r];
-      row.push(rec ? rec.codigo : '', rec ? rec.prueba : '');
+  for (let r = 0; r < maxLen; r++) {
+    const rowIdx = 2 + r;
+    colMeta.forEach((meta, c) => {
+      const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
+      if (meta.type === 'checkbox') {
+        if (r < chunks[0].length) ws[addr] = { t: 's', v: '☐', s: STYLE_CHECKBOX };
+      } else if (meta.type === 'codigo') {
+        const rec = chunks[meta.block][r];
+        ws[addr] = { t: 's', v: rec ? rec.codigo : '', s: STYLE_CODIGO };
+      } else if (meta.type === 'prueba') {
+        const rec = chunks[meta.block][r];
+        ws[addr] = { t: 's', v: rec ? rec.prueba : '', s: STYLE_PRUEBA };
+      } else {
+        ws[addr] = { t: 's', v: '', s: STYLE_SPACER };
+      }
     });
-    aoa.push(row);
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const lastRow = 2 + maxLen;
+  ws['!ref'] = `A1:${XLSX.utils.encode_col(totalCols - 1)}${lastRow}`;
+  ws['!cols'] = colWidths.map(w => ({ wch: w }));
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } }];
+  ws['!rows'] = [{ hpt: 18.75 }];
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Codigos');
+  return wb;
+}
+
+downloadBtn.addEventListener('click', () => {
+  if (extractedRecords.length === 0) return;
+  const wb = buildStyledWorkbook(extractedRecords, extractedDateLabel);
   const baseName = (selectedFile && selectedFile.name.replace(/\.pdf$/i, '')) || 'codigos';
   XLSX.writeFile(wb, `${baseName}-codigos.xlsx`);
 });
