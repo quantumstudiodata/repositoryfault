@@ -198,27 +198,48 @@ processBtn.addEventListener('click', async () => {
       allLines.push(...pageLines);
     }
 
-    // Líneas repetidas de encabezado/pie que no son datos de un registro.
+    // Líneas repetidas de encabezado/pie/etiquetas de columna que no son datos de un registro.
     const isBoilerplate = (line) =>
       !line ||
       /^LISTER\b/i.test(line) ||
       /^Ex[aá]menes desde/i.test(line) ||
       /^FOLIO\s+FECHA/i.test(line) ||
-      /^\d{1,4}$/.test(line);
+      /^\d{1,4}$/.test(line) ||
+      /^FECHA$/i.test(line) ||
+      /^PACIENTE$/i.test(line) ||
+      /^FEC\.?\s*NACI$/i.test(line) ||
+      /^S$/i.test(line) ||
+      /^TELEFONO$/i.test(line) ||
+      /^MEDICO$/i.test(line);
 
-    const folioLineRegex = /^(\d+)\s+\d{2}\/\d{2}\/\d{4}\/\d{1,2}:\d{2}\s*(am|pm)/i;
+    // El folio siempre abre línea con 6-10 dígitos, ya sea solo o seguido de la fecha
+    // (el orden folio/prueba/fecha varía según el reporte, y el espaciado alrededor de
+    // las barras de la fecha es irregular, así que no dependemos de esos detalles).
+    const folioMarkerRegex = /^(\d{6,10})\b/;
+
+    // Una línea "prueba" es corta, sin fecha de nacimiento, edad, teléfono ni género:
+    // esos patrones aparecen sueltos en reportes cuyo layout separa cada campo en su
+    // propia línea (p.ej. un registro que cae justo en un salto de página).
+    function looksLikePrueba(line) {
+      if (line.length > 24) return false;
+      if (/\d{2}\/\d{2}\/\d{4}/.test(line)) return false;
+      if (/^\d{1,3}\s*A(ños)?$/i.test(line)) return false;
+      if (/^[\d\s.\-()]+$/.test(line)) return false;
+      if (/^[MF]$/i.test(line)) return false;
+      return true;
+    }
 
     let records = [];
     if (modeSelect.value === 'folio') {
-      const lines = allLines.filter(l => !isBoilerplate(l));
+      const lines = allLines.map(l => l.trim()).filter(l => !isBoilerplate(l));
       for (let i = 0; i < lines.length; i++) {
-        const m = folioLineRegex.exec(lines[i]);
+        const m = folioMarkerRegex.exec(lines[i]);
         if (!m) continue;
         const codigo = m[1];
         const pruebaParts = [];
         let j = i + 1;
-        while (j < lines.length && !folioLineRegex.test(lines[j])) {
-          pruebaParts.push(lines[j]);
+        while (j < lines.length && !folioMarkerRegex.test(lines[j])) {
+          if (looksLikePrueba(lines[j])) pruebaParts.push(lines[j]);
           j++;
         }
         records.push({ codigo, prueba: pruebaParts.join(' ').trim() });
