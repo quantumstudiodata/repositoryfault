@@ -54,7 +54,7 @@
 <body>
   <div class="card">
     <h1>Extraer códigos de un PDF</h1>
-    <p class="sub">Sube un PDF con los códigos, ajusta el largo mínimo si hace falta y descarga la lista en Excel.</p>
+    <p class="sub">Sube un PDF con los códigos, elige el modo de extracción y descarga la lista en Excel.</p>
 
     <label class="drop" id="drop">
       <input type="file" id="fileInput" accept="application/pdf">
@@ -64,6 +64,14 @@
     </label>
 
     <label class="opt">
+      Modo de extracción:
+      <select id="mode" style="padding:4px 8px; background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:6px;">
+        <option value="folio">Folio (reporte tipo laboratorio)</option>
+        <option value="generic">Número genérico</option>
+      </select>
+    </label>
+
+    <label class="opt" id="minLenWrap" style="display:none;">
       Largo mínimo del código:
       <input type="number" id="minLen" value="4" min="1" max="30">
       dígitos
@@ -94,9 +102,15 @@ const codesListEl = document.getElementById('codesList');
 const countEl = document.getElementById('count');
 const downloadBtn = document.getElementById('downloadBtn');
 const minLenInput = document.getElementById('minLen');
+const modeSelect = document.getElementById('mode');
+const minLenWrap = document.getElementById('minLenWrap');
 
 let selectedFile = null;
 let extractedCodes = [];
+
+modeSelect.addEventListener('change', () => {
+  minLenWrap.style.display = modeSelect.value === 'generic' ? 'flex' : 'none';
+});
 
 function setStatus(msg, type){
   statusEl.textContent = msg || '';
@@ -145,9 +159,20 @@ processBtn.addEventListener('click', async () => {
       fullText += content.items.map(it => it.str).join(' ') + '\n';
     }
 
-    const minLen = Math.max(1, parseInt(minLenInput.value, 10) || 4);
-    const regex = new RegExp(`\\b\\d{${minLen},}\\b`, 'g');
-    const matches = fullText.match(regex) || [];
+    let matches = [];
+    if (modeSelect.value === 'folio') {
+      // Folio: número seguido de una fecha con hora (DD/MM/AAAA/HH:MMam|pm).
+      // Así se excluyen fechas de nacimiento, teléfonos y edades.
+      const folioRegex = /\b(\d+)\s+\d{2}\/\d{2}\/\d{4}\/\d{1,2}:\d{2}\s*(?:am|pm)/gi;
+      let m;
+      while ((m = folioRegex.exec(fullText)) !== null) {
+        matches.push(m[1]);
+      }
+    } else {
+      const minLen = Math.max(1, parseInt(minLenInput.value, 10) || 4);
+      const regex = new RegExp(`\\b\\d{${minLen},}\\b`, 'g');
+      matches = fullText.match(regex) || [];
+    }
     extractedCodes = [...new Set(matches)];
 
     if (extractedCodes.length === 0) {
