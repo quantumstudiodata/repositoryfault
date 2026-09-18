@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extraer códigos de PDF a Excel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0; --muted:#94a3b8;
+    --border:#334155; --ok:#22c55e; --err:#f87171;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .card{
+    width:100%; max-width:560px; background:var(--card); border:1px solid var(--border);
+    border-radius:16px; padding:32px; box-shadow:0 10px 30px rgba(0,0,0,.3);
+  }
+  h1{font-size:1.4rem; margin:0 0 6px;}
+  p.sub{color:var(--muted); margin:0 0 24px; font-size:.92rem;}
+  .drop{
+    border:2px dashed var(--border); border-radius:12px; padding:32px 16px;
+    text-align:center; cursor:pointer; transition:.15s; margin-bottom:16px;
+  }
+  .drop:hover, .drop.drag{ border-color:var(--accent); background:rgba(56,189,248,.06); }
+  .drop input{display:none;}
+  .drop .icon{font-size:2rem; margin-bottom:8px;}
+  .drop .fname{color:var(--accent); margin-top:8px; font-size:.85rem; word-break:break-all;}
+  label.opt{display:flex; align-items:center; gap:8px; font-size:.85rem; color:var(--muted); margin-bottom:16px;}
+  label.opt input{width:64px; padding:4px 8px; background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:6px;}
+  button{
+    width:100%; padding:12px; border:none; border-radius:10px; background:var(--accent);
+    color:#0f172a; font-weight:600; font-size:.95rem; cursor:pointer; transition:.15s;
+  }
+  button:disabled{opacity:.5; cursor:not-allowed;}
+  button:hover:not(:disabled){filter:brightness(1.08);}
+  .status{margin-top:16px; font-size:.88rem; min-height:1.2em;}
+  .status.err{color:var(--err);}
+  .status.ok{color:var(--ok);}
+  .result{margin-top:20px; border-top:1px solid var(--border); padding-top:16px;}
+  .result h2{font-size:1rem; margin:0 0 8px;}
+  .codes{
+    max-height:180px; overflow-y:auto; background:#0f172a; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; font-family:monospace; font-size:.85rem; line-height:1.6;
+  }
+  .count{color:var(--muted); font-size:.82rem; margin-top:6px;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Extraer códigos de un PDF</h1>
+    <p class="sub">Sube un PDF con los códigos, ajusta el largo mínimo si hace falta y descarga la lista en Excel.</p>
+
+    <label class="drop" id="drop">
+      <input type="file" id="fileInput" accept="application/pdf">
+      <div class="icon">📄</div>
+      <div>Haz clic o arrastra un PDF aquí</div>
+      <div class="fname" id="fname"></div>
+    </label>
+
+    <label class="opt">
+      Largo mínimo del código:
+      <input type="number" id="minLen" value="4" min="1" max="30">
+      dígitos
+    </label>
+
+    <button id="processBtn" disabled>Procesar PDF</button>
+
+    <div class="status" id="status"></div>
+
+    <div class="result" id="result" style="display:none;">
+      <h2>Códigos encontrados</h2>
+      <div class="codes" id="codesList"></div>
+      <div class="count" id="count"></div>
+      <button id="downloadBtn" style="margin-top:14px;">Descargar Excel</button>
+    </div>
+  </div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const fnameEl = document.getElementById('fname');
+const processBtn = document.getElementById('processBtn');
+const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+const codesListEl = document.getElementById('codesList');
+const countEl = document.getElementById('count');
+const downloadBtn = document.getElementById('downloadBtn');
+const minLenInput = document.getElementById('minLen');
+
+let selectedFile = null;
+let extractedCodes = [];
+
+function setStatus(msg, type){
+  statusEl.textContent = msg || '';
+  statusEl.className = 'status' + (type ? ' ' + type : '');
+}
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) selectFile(fileInput.files[0]);
+});
+
+['dragover','dragenter'].forEach(evt =>
+  drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.add('drag'); })
+);
+['dragleave','drop'].forEach(evt =>
+  drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.remove('drag'); })
+);
+drop.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) selectFile(f);
+});
+
+function selectFile(file){
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    setStatus('Por favor selecciona un archivo PDF.', 'err');
+    return;
+  }
+  selectedFile = file;
+  fnameEl.textContent = file.name;
+  processBtn.disabled = false;
+  resultEl.style.display = 'none';
+  setStatus('');
+}
+
+processBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  processBtn.disabled = true;
+  setStatus('Leyendo PDF...');
+  try {
+    const buffer = await selectedFile.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      setStatus(`Extrayendo texto (página ${i} de ${pdf.numPages})...`);
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      fullText += content.items.map(it => it.str).join(' ') + '\n';
+    }
+
+    const minLen = Math.max(1, parseInt(minLenInput.value, 10) || 4);
+    const regex = new RegExp(`\\b\\d{${minLen},}\\b`, 'g');
+    const matches = fullText.match(regex) || [];
+    extractedCodes = [...new Set(matches)];
+
+    if (extractedCodes.length === 0) {
+      setStatus('No se encontraron códigos numéricos en el PDF. Intenta bajar el largo mínimo.', 'err');
+      resultEl.style.display = 'none';
+    } else {
+      codesListEl.innerHTML = extractedCodes.map(c => `<div>${c}</div>`).join('');
+      countEl.textContent = `${extractedCodes.length} código(s) único(s) encontrado(s).`;
+      resultEl.style.display = 'block';
+      setStatus('¡Listo!', 'ok');
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus('Error al procesar el PDF: ' + err.message, 'err');
+  } finally {
+    processBtn.disabled = false;
+  }
+});
+
+downloadBtn.addEventListener('click', () => {
+  if (extractedCodes.length === 0) return;
+  const rows = extractedCodes.map(code => ({ Codigo: code }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Codigos');
+  const baseName = (selectedFile && selectedFile.name.replace(/\.pdf$/i, '')) || 'codigos';
+  XLSX.writeFile(wb, `${baseName}-codigos.xlsx`);
+});
+</script>
+</body>
+</html>
