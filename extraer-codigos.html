@@ -107,6 +107,7 @@ const minLenWrap = document.getElementById('minLenWrap');
 
 let selectedFile = null;
 let extractedCodes = [];
+let extractedRecords = [];
 
 modeSelect.addEventListener('change', () => {
   minLenWrap.style.display = modeSelect.value === 'generic' ? 'flex' : 'none';
@@ -152,6 +153,7 @@ processBtn.addEventListener('click', async () => {
     const buffer = await selectedFile.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
     let fullText = '';
+    const allLines = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       setStatus(`Extrayendo texto (página ${i} de ${pdf.numPages})...`);
       const page = await pdf.getPage(i);
@@ -172,28 +174,52 @@ processBtn.addEventListener('click', async () => {
         if (!row) { row = { y: it.y, items: [] }; rows.push(row); }
         row.items.push(it);
       }
-      const pageText = rows
-        .map(r => r.items.sort((a, b) => a.x - b.x).map(it => it.str).join(' '))
-        .join('\n');
+      const pageLines = rows.map(r => r.items.sort((a, b) => a.x - b.x).map(it => it.str).join(' ').trim());
 
-      fullText += pageText + '\n';
+      fullText += pageLines.join('\n') + '\n';
+      allLines.push(...pageLines);
     }
 
-    let matches = [];
+    // Líneas repetidas de encabezado/pie que no son datos de un registro.
+    const isBoilerplate = (line) =>
+      !line ||
+      /^LISTER\b/i.test(line) ||
+      /^Ex[aá]menes desde/i.test(line) ||
+      /^FOLIO\s+FECHA/i.test(line) ||
+      /^\d{1,4}$/.test(line);
+
+    const folioLineRegex = /^(\d+)\s+\d{2}\/\d{2}\/\d{4}\/\d{1,2}:\d{2}\s*(am|pm)/i;
+
+    let records = [];
     if (modeSelect.value === 'folio') {
-      // Folio: número seguido de una fecha con hora (DD/MM/AAAA/HH:MMam|pm).
-      // Así se excluyen fechas de nacimiento, teléfonos y edades.
-      const folioRegex = /\b(\d+)\s+\d{2}\/\d{2}\/\d{4}\/\d{1,2}:\d{2}\s*(?:am|pm)/gi;
-      let m;
-      while ((m = folioRegex.exec(fullText)) !== null) {
-        matches.push(m[1]);
+      const lines = allLines.filter(l => !isBoilerplate(l));
+      for (let i = 0; i < lines.length; i++) {
+        const m = folioLineRegex.exec(lines[i]);
+        if (!m) continue;
+        const codigo = m[1];
+        const pruebaParts = [];
+        let j = i + 1;
+        while (j < lines.length && !folioLineRegex.test(lines[j])) {
+          pruebaParts.push(lines[j]);
+          j++;
+        }
+        records.push({ codigo, prueba: pruebaParts.join(' ').trim() });
       }
+      // Elimina folios duplicados conservando la primera prueba encontrada.
+      const seen = new Set();
+      records = records.filter(r => {
+        if (seen.has(r.codigo)) return false;
+        seen.add(r.codigo);
+        return true;
+      });
     } else {
       const minLen = Math.max(1, parseInt(minLenInput.value, 10) || 4);
       const regex = new RegExp(`\\b\\d{${minLen},}\\b`, 'g');
-      matches = fullText.match(regex) || [];
+      const matches = fullText.match(regex) || [];
+      records = [...new Set(matches)].map(codigo => ({ codigo, prueba: '' }));
     }
-    extractedCodes = [...new Set(matches)];
+    extractedRecords = records;
+    extractedCodes = records.map(r => r.codigo);
 
     if (extractedCodes.length === 0) {
       const hint = modeSelect.value === 'folio'
@@ -202,7 +228,9 @@ processBtn.addEventListener('click', async () => {
       setStatus(hint, 'err');
       resultEl.style.display = 'none';
     } else {
-      codesListEl.innerHTML = extractedCodes.map(c => `<div>${c}</div>`).join('');
+      codesListEl.innerHTML = extractedRecords
+        .map(r => `<div>${r.codigo}${r.prueba ? ' — ' + r.prueba : ''}</div>`)
+        .join('');
       countEl.textContent = `${extractedCodes.length} código(s) único(s) encontrado(s).`;
       resultEl.style.display = 'block';
       setStatus('¡Listo!', 'ok');
@@ -216,9 +244,30 @@ processBtn.addEventListener('click', async () => {
 });
 
 downloadBtn.addEventListener('click', () => {
-  if (extractedCodes.length === 0) return;
-  const rows = extractedCodes.map(code => ({ Codigo: code }));
-  const ws = XLSX.utils.json_to_sheet(rows);
+  if (extractedRecords.length === 0) return;
+
+  // Bloques de 50 registros por par de columnas: A/B, luego C/D, luego E/F, etc.
+  const CHUNK_SIZE = 50;
+  const chunks = [];
+  for (let i = 0; i < extractedRecords.length; i += CHUNK_SIZE) {
+    chunks.push(extractedRecords.slice(i, i + CHUNK_SIZE));
+  }
+
+  const aoa = [];
+  const headerRow = [];
+  chunks.forEach(() => headerRow.push('Codigo', 'Prueba'));
+  aoa.push(headerRow);
+
+  for (let r = 0; r < CHUNK_SIZE; r++) {
+    const row = [];
+    chunks.forEach(chunk => {
+      const rec = chunk[r];
+      row.push(rec ? rec.codigo : '', rec ? rec.prueba : '');
+    });
+    aoa.push(row);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Codigos');
   const baseName = (selectedFile && selectedFile.name.replace(/\.pdf$/i, '')) || 'codigos';
