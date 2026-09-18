@@ -8,8 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style/dist/xlsx.bundle.js"></script>
 <style>
   :root{
-    --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0; --muted:#94a3b8;
-    --border:#334155; --ok:#22c55e; --err:#f87171;
+    --bg:#0a0a0a; --text:#e8e8e6; --muted:#8a8a86; --border:#2a2a28;
+    --accent:#e8e8e6; --ok:#7a9a7a; --err:#c97a7a;
   }
   *{box-sizing:border-box;}
   body{
@@ -18,37 +18,50 @@
     display:flex; align-items:center; justify-content:center; padding:24px;
   }
   .card{
-    width:100%; max-width:560px; background:var(--card); border:1px solid var(--border);
-    border-radius:16px; padding:32px; box-shadow:0 10px 30px rgba(0,0,0,.3);
+    width:100%; max-width:480px;
   }
-  h1{font-size:1.4rem; margin:0 0 6px;}
-  p.sub{color:var(--muted); margin:0 0 24px; font-size:.92rem;}
+  .icon-svg{ display:block; stroke:currentColor; fill:none; stroke-width:1.4; }
+  h1{font-size:1.25rem; font-weight:600; margin:0 0 6px; letter-spacing:-0.01em;}
+  p.sub{color:var(--muted); margin:0 0 32px; font-size:.88rem; line-height:1.5;}
   .drop{
-    border:2px dashed var(--border); border-radius:12px; padding:32px 16px;
-    text-align:center; cursor:pointer; transition:.15s; margin-bottom:16px;
+    border:1px solid var(--border); border-radius:6px; padding:36px 16px;
+    text-align:center; cursor:pointer; transition:.15s; margin-bottom:20px;
+    display:flex; flex-direction:column; align-items:center; gap:10px;
   }
-  .drop:hover, .drop.drag{ border-color:var(--accent); background:rgba(56,189,248,.06); }
+  .drop:hover, .drop.drag{ border-color:var(--text); }
   .drop input{display:none;}
-  .drop .icon{font-size:2rem; margin-bottom:8px;}
-  .drop .fname{color:var(--accent); margin-top:8px; font-size:.85rem; word-break:break-all;}
-  label.opt{display:flex; align-items:center; gap:8px; font-size:.85rem; color:var(--muted); margin-bottom:16px;}
-  label.opt input{width:64px; padding:4px 8px; background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:6px;}
-  button{
-    width:100%; padding:12px; border:none; border-radius:10px; background:var(--accent);
-    color:#0f172a; font-weight:600; font-size:.95rem; cursor:pointer; transition:.15s;
+  .drop .icon-svg{ color:var(--muted); }
+  .drop .label{font-size:.88rem; color:var(--text);}
+  .drop .hint{font-size:.78rem; color:var(--muted);}
+  .drop .fname{color:var(--text); margin-top:4px; font-size:.82rem; word-break:break-all;}
+  label.opt{display:flex; align-items:center; gap:10px; font-size:.82rem; color:var(--muted); margin-bottom:14px;}
+  label.opt select, label.opt input{
+    flex:1; padding:8px 10px; background:transparent; border:1px solid var(--border);
+    color:var(--text); border-radius:6px; font-size:.82rem;
   }
-  button:disabled{opacity:.5; cursor:not-allowed;}
-  button:hover:not(:disabled){filter:brightness(1.08);}
-  .status{margin-top:16px; font-size:.88rem; min-height:1.2em;}
+  label.opt input{flex:none; width:64px;}
+  button{
+    width:100%; padding:12px; border:1px solid var(--text); border-radius:6px; background:transparent;
+    color:var(--text); font-weight:600; font-size:.9rem; cursor:pointer; transition:.15s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  button:disabled{opacity:.35; cursor:not-allowed;}
+  button:hover:not(:disabled){background:var(--text); color:var(--bg);}
+  button:hover:not(:disabled) .icon-svg{stroke:var(--bg);}
+  .status{margin-top:14px; font-size:.82rem; min-height:1.2em; display:flex; align-items:center; gap:6px;}
   .status.err{color:var(--err);}
   .status.ok{color:var(--ok);}
-  .result{margin-top:20px; border-top:1px solid var(--border); padding-top:16px;}
-  .result h2{font-size:1rem; margin:0 0 8px;}
+  .result{margin-top:28px; border-top:1px solid var(--border); padding-top:20px;}
+  .result h2{font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 10px;}
   .codes{
-    max-height:180px; overflow-y:auto; background:#0f172a; border:1px solid var(--border);
-    border-radius:8px; padding:10px 14px; font-family:monospace; font-size:.85rem; line-height:1.6;
+    max-height:180px; overflow-y:auto; border:1px solid var(--border);
+    border-radius:6px; padding:4px 14px; font-family:ui-monospace,monospace; font-size:.82rem; line-height:1.9;
   }
-  .count{color:var(--muted); font-size:.82rem; margin-top:6px;}
+  .codes > div{ border-bottom:1px solid var(--border); padding:4px 0; }
+  .codes > div:last-child{ border-bottom:none; }
+  .count{color:var(--muted); font-size:.78rem; margin-top:8px;}
+  #downloadBtn{margin-top:14px; border-color:var(--border);}
+  #downloadBtn:hover{background:var(--text); color:var(--bg);}
 </style>
 </head>
 <body>
@@ -58,26 +71,29 @@
 
     <label class="drop" id="drop">
       <input type="file" id="fileInput" accept="application/pdf">
-      <div class="icon">📄</div>
-      <div>Haz clic o arrastra un PDF aquí</div>
+      <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6"/></svg>
+      <div class="label">Arrastra tu PDF aquí o haz clic</div>
+      <div class="hint">Solo archivos .pdf</div>
       <div class="fname" id="fname"></div>
     </label>
 
     <label class="opt">
-      Modo de extracción:
-      <select id="mode" style="padding:4px 8px; background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:6px;">
+      Modo de extracción
+      <select id="mode">
         <option value="folio">Folio (reporte tipo laboratorio)</option>
         <option value="generic">Número genérico</option>
       </select>
     </label>
 
     <label class="opt" id="minLenWrap" style="display:none;">
-      Largo mínimo del código:
+      Largo mínimo
       <input type="number" id="minLen" value="4" min="1" max="30">
-      dígitos
     </label>
 
-    <button id="processBtn" disabled>Procesar PDF</button>
+    <button id="processBtn" disabled>
+      <svg class="icon-svg" width="15" height="15" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
+      Procesar PDF
+    </button>
 
     <div class="status" id="status"></div>
 
@@ -85,7 +101,10 @@
       <h2>Códigos encontrados</h2>
       <div class="codes" id="codesList"></div>
       <div class="count" id="count"></div>
-      <button id="downloadBtn" style="margin-top:14px;">Descargar Excel</button>
+      <button id="downloadBtn">
+        <svg class="icon-svg" width="15" height="15" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg>
+        Descargar Excel
+      </button>
     </div>
   </div>
 
