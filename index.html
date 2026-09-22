@@ -1548,6 +1548,9 @@ select option { background: var(--card-solid); color: var(--ink); }
           <input type="number" id="quincena-dia2" min="1" max="31" placeholder="16">
         </div>
       </div>
+      <label class="field-label" for="reparto-quincena-pct" style="margin-top:14px">¿Cómo repartes tu meta de ahorro entre las dos quincenas?</label>
+      <input type="range" id="reparto-quincena-pct" min="1" max="99" step="1" value="50" style="width:100%">
+      <div class="sheet-text" id="reparto-quincena-pct-txt" style="margin-top:4px">50% primera quincena · 50% segunda quincena</div>
     </div>
     <div class="sheet-text campo-oculto" style="margin-top:8px" id="frecuencia-decenal-nota">Decenal reparte el mes en 3 periodos fijos: días 1-10, 11-20 y 21 al último día del mes.</div>
 
@@ -2077,6 +2080,9 @@ select option { background: var(--card-solid); color: var(--ink); }
           <input type="number" id="meta-quincena-dia2-edit" min="1" max="31" placeholder="16">
         </div>
       </div>
+      <label class="field-label" for="meta-reparto-quincena-pct-edit" style="margin-top:14px">¿Cómo repartes tu meta de ahorro entre las dos quincenas?</label>
+      <input type="range" id="meta-reparto-quincena-pct-edit" min="1" max="99" step="1" value="50" style="width:100%">
+      <div class="sheet-text" id="meta-reparto-quincena-pct-edit-txt" style="margin-top:4px">50% primera quincena · 50% segunda quincena</div>
     </div>
     <div class="sheet-text campo-oculto" style="margin-top:8px" id="meta-frecuencia-decenal-nota">Decenal reparte el mes en 3 periodos fijos: días 1-10, 11-20 y 21 al último día del mes.</div>
 
@@ -2590,13 +2596,14 @@ function actualizarCamposFrecuencia(freq, idQuincenal, idSemanal) {
   if (nota) nota.classList.toggle('campo-oculto', freq !== 'decenal');
 }
 
-function aplicarYGuardarMeta(val, freq, dia1, dia2, semanaDia, ingresoMensual) {
+function aplicarYGuardarMeta(val, freq, dia1, dia2, semanaDia, ingresoMensual, repartoPct) {
   config.metaAhorro = val;
   config.frecuenciaPago = freq;
   config.ingresoMensualEstimado = ingresoMensual;
   if (freq === 'quincenal' || freq === 'catorcenal') {
     config.quincenaDia1 = dia1;
     config.quincenaDia2 = dia2;
+    config.repartoQuincenaPct = repartoPct;
   } else if (freq === 'semanal') {
     config.semanaDia = semanaDia;
   }
@@ -2609,9 +2616,23 @@ function aplicarYGuardarMeta(val, freq, dia1, dia2, semanaDia, ingresoMensual) {
     frecuenciaPago: freq,
     quincenaDia1: config.quincenaDia1 || 1,
     quincenaDia2: config.quincenaDia2 || 16,
+    repartoQuincenaPct: config.repartoQuincenaPct || 50,
     semanaDia: config.semanaDia !== undefined ? config.semanaDia : 5
   });
 }
+
+// --- Reparto de la meta de ahorro entre quincenas: el slider va de 1 a 99
+// (% que se lleva la primera quincena) y el texto de abajo se actualiza en
+// vivo para que quede claro qué le toca a cada una. ---
+function textoRepartoQuincena(pct) {
+  return pct + '% primera quincena · ' + (100 - pct) + '% segunda quincena';
+}
+document.getElementById('reparto-quincena-pct').addEventListener('input', function() {
+  document.getElementById('reparto-quincena-pct-txt').textContent = textoRepartoQuincena(parseInt(this.value, 10));
+});
+document.getElementById('meta-reparto-quincena-pct-edit').addEventListener('input', function() {
+  document.getElementById('meta-reparto-quincena-pct-edit-txt').textContent = textoRepartoQuincena(parseInt(this.value, 10));
+});
 
 const TEXTO_INFO_INGRESO_MENSUAL =
   '¿Qué es?\nTu ingreso mensual aproximado (suma de todas tus quincenas o pagos).\n\n' +
@@ -2632,7 +2653,8 @@ document.getElementById('btn-guardar-meta-ajustes').addEventListener('click', fu
   aplicarYGuardarMeta(val, document.getElementById('frecuencia-pago').value,
     parseInt(document.getElementById('quincena-dia1').value, 10) || 1,
     parseInt(document.getElementById('quincena-dia2').value, 10) || 16,
-    parseInt(document.getElementById('semana-dia').value, 10), ingresoMensual);
+    parseInt(document.getElementById('semana-dia').value, 10), ingresoMensual,
+    parseInt(document.getElementById('reparto-quincena-pct').value, 10) || 50);
 });
 
 document.getElementById('btn-guardar-saldo-ajustes').addEventListener('click', function() {
@@ -2670,6 +2692,9 @@ document.getElementById('btn-editar-meta').addEventListener('click', function() 
   document.getElementById('meta-quincena-dia1-edit').value = config.quincenaDia1 || 1;
   document.getElementById('meta-quincena-dia2-edit').value = config.quincenaDia2 || 16;
   document.getElementById('meta-semana-dia-edit').value = config.semanaDia !== undefined ? config.semanaDia : 5;
+  const repartoEdit = pctPrimeraQuincena();
+  document.getElementById('meta-reparto-quincena-pct-edit').value = repartoEdit;
+  document.getElementById('meta-reparto-quincena-pct-edit-txt').textContent = textoRepartoQuincena(repartoEdit);
   document.getElementById('overlay-meta').classList.add('show');
 });
 document.getElementById('meta-close').addEventListener('click', function() {
@@ -2685,7 +2710,8 @@ document.getElementById('btn-guardar-meta-overlay').addEventListener('click', fu
   aplicarYGuardarMeta(val, document.getElementById('meta-frecuencia-edit').value,
     parseInt(document.getElementById('meta-quincena-dia1-edit').value, 10) || 1,
     parseInt(document.getElementById('meta-quincena-dia2-edit').value, 10) || 16,
-    parseInt(document.getElementById('meta-semana-dia-edit').value, 10), ingresoMensual);
+    parseInt(document.getElementById('meta-semana-dia-edit').value, 10), ingresoMensual,
+    parseInt(document.getElementById('meta-reparto-quincena-pct-edit').value, 10) || 50);
   cargarFormAjustes();
   document.getElementById('overlay-meta').classList.remove('show');
 });
@@ -2701,6 +2727,9 @@ function cargarFormAjustes() {
   document.getElementById('quincena-dia1').value = config.quincenaDia1 || 1;
   document.getElementById('quincena-dia2').value = config.quincenaDia2 || 16;
   document.getElementById('semana-dia').value = config.semanaDia !== undefined ? config.semanaDia : 5;
+  const repartoAjustes = pctPrimeraQuincena();
+  document.getElementById('reparto-quincena-pct').value = repartoAjustes;
+  document.getElementById('reparto-quincena-pct-txt').textContent = textoRepartoQuincena(repartoAjustes);
   document.getElementById('saldo-ahorrado-input').value = Number(config.saldoAhorrado) || 0;
   document.getElementById('saldo-inicial-input').value = config.saldoInicial !== undefined && config.saldoInicial !== null ? Number(config.saldoInicial) : '';
   renderAjustesResumen();
@@ -3580,7 +3609,7 @@ function periodoDe(fechaStr, modo) {
     fin = qId === 1 ? new Date(sy, sm, dia1 - 1) : new Date(sy, sm + 1, dia2 - 1);
   }
   const label = inicio.getDate() + ' ' + mesesCortos[sm] + '-' + fin.getDate() + ' ' + mesesCortos[fin.getMonth()];
-  return { key: sy + '-' + sm + '-' + qId, label: label, start: start };
+  return { key: sy + '-' + sm + '-' + qId, label: label, start: start, qId: qId };
 }
 
 function agruparPorPeriodo(modo) {
@@ -3959,6 +3988,27 @@ function periodosPorMes() {
   if (freq === 'decenal') return 3;
   return 2;
 }
+
+// --- Reparto desigual de la meta de ahorro entre las dos quincenas del mes.
+// Por default se sigue repartiendo 50/50 (igual que antes); si el usuario
+// configura otro %, la primera quincena (qId 0) se lleva ese % y la segunda
+// (qId 1) el resto. Solo aplica a quincenal/catorcenal — el resto de
+// frecuencias sigue con reparto parejo entre sus periodos. ---
+function pctPrimeraQuincena() {
+  const p = Number(config.repartoQuincenaPct);
+  return (p >= 1 && p <= 99) ? p : 50;
+}
+function metaAhorroDelPeriodo(modo, periodo) {
+  const metaMensual = Number(config.metaAhorro) || 0;
+  if (modo === 'mensual') return metaMensual;
+  const freq = config.frecuenciaPago || 'quincenal';
+  if ((freq === 'quincenal' || freq === 'catorcenal') && periodo && periodo.qId !== undefined) {
+    const pct1 = pctPrimeraQuincena();
+    const pct = periodo.qId === 0 ? pct1 : (100 - pct1);
+    return Math.round(metaMensual * pct / 100 * 100) / 100;
+  }
+  return metaMensual / periodosPorMes();
+}
 function ingresoBaseMensual() {
   const aprendido = ingresoMensualAprendido();
   if (aprendido !== null) return { monto: aprendido, aprendido: true };
@@ -3967,8 +4017,7 @@ function ingresoBaseMensual() {
 
 function calcularPresupuesto(modo) {
   const periodo = periodoDe(hoyISO(), modo);
-  const metaAhorroMensual = Number(config.metaAhorro) || 0;
-  const metaAhorroPeriodo = modo === 'quincena' ? metaAhorroMensual / 2 : metaAhorroMensual;
+  const metaAhorroPeriodo = metaAhorroDelPeriodo(modo, periodo);
 
   const base = ingresoBaseMensual();
   const numPeriodos = modo === 'mensual' ? 1 : periodosPorMes();
@@ -4331,11 +4380,11 @@ function rachaDentroDePresupuesto(modo) {
 }
 function rachaMetaAhorro(modo) {
   const periodos = periodosCompletos(modo);
-  const metaPeriodo = modo === 'mensual' ? (Number(config.metaAhorro) || 0) : (Number(config.metaAhorro) || 0) / periodosPorMes();
-  if (metaPeriodo <= 0) return 0;
+  if ((Number(config.metaAhorro) || 0) <= 0) return 0;
   let racha = 0;
   for (let i = periodos.length - 1; i >= 0; i--) {
-    if (ahorroDePeriodo(periodos[i].key, modo) >= metaPeriodo) racha++; else break;
+    const metaPeriodo = metaAhorroDelPeriodo(modo, periodos[i]);
+    if (metaPeriodo > 0 && ahorroDePeriodo(periodos[i].key, modo) >= metaPeriodo) racha++; else break;
   }
   return racha;
 }
@@ -4545,11 +4594,19 @@ function ahorroAutomaticoActual() {
   gastos.forEach(function(g) {
     if (g.tipo !== 'ingreso') return;
     const p = periodoDe(g.fecha, 'quincena');
-    if (p) periodosConIngreso[p.key] = true;
+    if (p) periodosConIngreso[p.key] = p;
   });
-  const cantidad = Object.keys(periodosConIngreso).length;
-  if (cantidad === 0) return 0;
-  return Math.round((meta / periodosPorMes()) * cantidad * 100) / 100;
+  const claves = Object.keys(periodosConIngreso);
+  if (claves.length === 0) return 0;
+  // Antes se hacía (meta / periodosPorMes()) * cantidad, repartiendo parejo.
+  // Ahora cada periodo pesa lo que le toque según pctPrimeraQuincena() (por
+  // default 50/50, así que para quien no cambió nada esto da el mismo
+  // resultado de siempre).
+  let total = 0;
+  claves.forEach(function(k) {
+    total += metaAhorroDelPeriodo('quincena', periodosConIngreso[k]);
+  });
+  return Math.round(total * 100) / 100;
 }
 
 // ==================================================================
@@ -5557,7 +5614,7 @@ function actualizarRadianteSiCorresponde() {
   const gastoAnterior = gastoDePeriodo(periodoAnterior.key, 'quincena');
   const ahorroAnterior = ahorroDePeriodo(periodoAnterior.key, 'quincena');
   const techo = techoGastoPeriodo('quincena');
-  const metaAhorroPeriodo = (Number(config.metaAhorro) || 0) / periodosPorMes();
+  const metaAhorroPeriodo = metaAhorroDelPeriodo('quincena', periodoAnterior);
 
   if ((techo > 0 && gastoAnterior <= techo) || (metaAhorroPeriodo > 0 && ahorroAnterior >= metaAhorroPeriodo)) {
     config.gatoUltimoRadianteClave = claveLogro;
