@@ -2746,7 +2746,7 @@ document.getElementById('btn-guardar-saldo-ajustes').addEventListener('click', f
 // usa solo para calcular "Disponible" (no afecta Total ahorrado, ese es el
 // de "Saldo ahorrado"). Se captura una sola vez al configurar la app. ---
 document.getElementById('btn-info-saldo-inicial').addEventListener('click', function() {
-  mostrarInfo('Saldo inicial', 'El dinero que tenías en tu cuenta bancaria antes de empezar a usar Kashly.\n\nSe usa solo para calcular tu "Disponible" correctamente: Disponible = Saldo inicial + Ingresos del periodo − Gastos del periodo − Ahorro del periodo.\n\nNo afecta tu "Saldo ahorrado" ni tu Total ahorrado — son cosas distintas.');
+  mostrarInfo('Saldo inicial', 'El dinero que tenías en tu cuenta bancaria antes de empezar a usar Kashly.\n\nSe usa solo para calcular tu "Disponible" correctamente: Disponible = Saldo inicial + Ingresos − Gastos − Ahorro.\n\nEs tu saldo real: solo se mueve con movimientos que de verdad registraste, nunca con tu meta de ahorro (esa es solo una sugerencia, no descuenta nada de aquí).\n\nNo afecta tu "Saldo ahorrado" ni tu Total ahorrado — son cosas distintas.');
 });
 document.getElementById('btn-guardar-saldo-inicial-ajustes').addEventListener('click', function() {
   const val = parseFloat(document.getElementById('saldo-inicial-input').value);
@@ -4014,15 +4014,15 @@ function render() {
   const totalGasto = gastos.filter(g => g.tipo === 'gasto').reduce((s, g) => s + Number(g.monto), 0);
   const totalAhorroMov = gastos.filter(g => g.tipo === 'ahorro').reduce((s, g) => s + Number(g.monto), 0);
   const saldoManual = Number(config.saldoAhorrado) || 0;
-  const ahorroAuto = ahorroAutomaticoActual();
-  // El ahorro automático (tu meta de ahorro repartida por periodo) se aparta
-  // de Disponible para que no lo gastes, pero todavía no es dinero que hayas
-  // movido de verdad a tu ahorro — por eso no se suma a Total ahorrado. Total
-  // ahorrado solo refleja lo que registraste a mano o lo que la app detectó
-  // que ya guardaste (los "Cierre de quincena/mes" que aceptaste).
   const totalAhorro = totalAhorroMov + saldoManual;
   const saldoInicial = Number(config.saldoInicial) || 0;
-  const disponible = saldoInicial + (totalIngreso - ahorroAuto) - totalGasto;
+  // Disponible = tu dinero REAL, tal cual estaría en tu tarjeta: solo se
+  // mueve con movimientos que de verdad registraste (ingresos, gastos y
+  // ahorro que ya sacaste de esta cuenta). Ya NO se le resta la meta de
+  // ahorro repartida por periodo — eso era una proyección/sugerencia, no
+  // dinero que en verdad haya salido, y hacía que Disponible no coincidiera
+  // con el saldo real de la tarjeta.
+  const disponible = saldoInicial + totalIngreso - totalGasto - totalAhorroMov;
 
   document.getElementById('sum-ingreso').textContent = fmt(totalIngreso);
   document.getElementById('sum-gasto').textContent = fmt(totalGasto);
@@ -4704,34 +4704,6 @@ function quitarXP(cantidad, motivo) {
 // completo del periodo, no prorrateado por simplicidad), otorga +5 XP por
 // ese día, y un bonus extra de +15 XP cada 7 días seguidos (y +30 XP cada
 // 30 días seguidos). También dispara la revisión de los bonos mensuales. ---
-// Cuánto de tu meta de ahorro está "apartado" de tu Disponible ahora mismo:
-// tu meta repartida por periodo, multiplicada por cuántas quincenas tienen
-// AL MENOS UN INGRESO registrado hoy mismo. A propósito no se guarda como
-// un acumulado aparte — se recalcula desde cero con tus movimientos y tu
-// meta actuales cada vez que se necesita, así nunca puede quedar
-// desfasado: si borras un ingreso, esa quincena deja de contar; si cambias
-// tu meta, se aplica a todo tu historial de inmediato; nada se congela.
-function ahorroAutomaticoActual() {
-  const meta = Number(config.metaAhorro) || 0;
-  if (meta <= 0) return 0;
-  const periodosConIngreso = {};
-  gastos.forEach(function(g) {
-    if (g.tipo !== 'ingreso') return;
-    const p = periodoDe(g.fecha, 'quincena');
-    if (p) periodosConIngreso[p.key] = p;
-  });
-  const claves = Object.keys(periodosConIngreso);
-  if (claves.length === 0) return 0;
-  // Antes se hacía (meta / periodosPorMes()) * cantidad, repartiendo parejo.
-  // Ahora cada periodo pesa lo que le toque según pctPrimeraQuincena() (por
-  // default 50/50, así que para quien no cambió nada esto da el mismo
-  // resultado de siempre).
-  let total = 0;
-  claves.forEach(function(k) {
-    total += metaAhorroDelPeriodo('quincena', periodosConIngreso[k]);
-  });
-  return Math.round(total * 100) / 100;
-}
 
 // ==================================================================
 // --- Cuentas / "Mis tarjetas": una capa ligera de organización.     --
