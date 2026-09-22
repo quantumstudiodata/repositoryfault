@@ -518,6 +518,23 @@ select option { background: var(--card-solid); color: var(--ink); }
 
 /* ---- Calendario visual de los dos periodos de pago ---- */
 .periodo-chips { display: flex; gap: 10px; margin-top: 10px; }
+
+/* ---- Selector de días de pago: cuadrícula tocable en vez de escribir el
+   número a mano — más rápido de ajustar cuando tu fecha de pago cambia. ---- */
+.dia-pago-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+.dia-btn {
+  aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,0.03);
+  color: var(--ink); font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: transform 0.1s ease;
+}
+.dia-btn:active { transform: scale(0.9); }
+.dia-btn.sel-1 { background: var(--accent-2); border-color: var(--accent-2); color: #06231a; font-weight: 800; }
+.dia-btn.sel-2 { background: var(--accent); border-color: var(--accent); color: #2a1608; font-weight: 800; }
+.dia-pago-leyenda { display: flex; gap: 16px; margin-top: 10px; }
+.dia-pago-leyenda span { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--muted); }
+.dia-pago-leyenda i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; font-style: normal; }
+.dia-pago-leyenda .i1 { background: var(--accent-2); }
+.dia-pago-leyenda .i2 { background: var(--accent); }
 .periodo-chip {
   flex: 1; border-radius: 14px; padding: 12px 12px 10px; position: relative;
   border: 1.5px solid var(--line); background: rgba(255,255,255,0.03);
@@ -1570,7 +1587,6 @@ select option { background: var(--card-solid); color: var(--ink); }
       <input type="number" id="meta-ahorro-input" placeholder="0.00" step="0.01">
 
       <label class="field-label" for="ingreso-mensual-input" style="margin-top:14px">Ingreso mensual estimado <button type="button" class="info-btn" id="btn-info-ingreso-mensual">?</button></label>
-      <div class="sheet-text" style="margin-bottom:6px">La suma de TODOS tus pagos del mes juntos (si cobras quincenal, tus dos quincenas sumadas — no un solo pago).</div>
       <input type="number" id="ingreso-mensual-input" placeholder="0.00" step="0.01">
       <div class="sheet-text" id="ingreso-mensual-preview" style="margin-top:4px"></div>
     </div>
@@ -1587,17 +1603,11 @@ select option { background: var(--card-solid); color: var(--ink); }
       </select>
 
       <div id="campo-frecuencia-quincenal" style="margin-top:14px">
-        <div class="sheet-text" style="margin-bottom:10px">¿Qué día del mes te depositan? Si te pagan dos veces al mes, pon aquí esos dos días (ej. si cobras el 16 y el 29, pon 16 y 29).</div>
-        <div class="row2">
-          <div>
-            <label class="field-label" for="quincena-dia1">Día de tu 1er pago del mes</label>
-            <input type="number" id="quincena-dia1" min="1" max="31" placeholder="1">
-          </div>
-          <div>
-            <label class="field-label" for="quincena-dia2">Día de tu 2do pago del mes</label>
-            <input type="number" id="quincena-dia2" min="1" max="31" placeholder="16">
-          </div>
-        </div>
+        <label class="field-label">Toca tus 2 días de pago</label>
+        <div class="dia-pago-grid" id="dia-pago-grid"></div>
+        <div class="dia-pago-leyenda"><span><i class="i1"></i>1er pago</span><span><i class="i2"></i>2do pago</span></div>
+        <input type="hidden" id="quincena-dia1">
+        <input type="hidden" id="quincena-dia2">
         <div class="periodo-chips" id="periodo-chips"></div>
       </div>
       <div class="sheet-text campo-oculto" style="margin-top:8px" id="frecuencia-decenal-nota">Decenal reparte el mes en 3 periodos fijos: días 1-10, 11-20 y 21 al último día del mes.</div>
@@ -2118,7 +2128,6 @@ select option { background: var(--card-solid); color: var(--ink); }
       <input type="number" id="meta-monto-edit" placeholder="0.00" step="0.01">
 
       <label class="field-label" for="meta-ingreso-mensual-edit" style="margin-top:14px">Ingreso mensual estimado <button type="button" class="info-btn" id="btn-info-ingreso-mensual-2">?</button></label>
-      <div class="sheet-text" style="margin-bottom:6px">La suma de TODOS tus pagos del mes juntos (si cobras quincenal, tus dos quincenas sumadas — no un solo pago).</div>
       <input type="number" id="meta-ingreso-mensual-edit" placeholder="0.00" step="0.01">
       <div class="sheet-text" id="meta-ingreso-mensual-preview" style="margin-top:4px"></div>
     </div>
@@ -2135,17 +2144,11 @@ select option { background: var(--card-solid); color: var(--ink); }
       </select>
 
       <div id="meta-campo-quincenal-edit" style="margin-top:14px">
-        <div class="sheet-text" style="margin-bottom:10px">¿Qué día del mes te depositan? Si te pagan dos veces al mes, pon aquí esos dos días (ej. si cobras el 16 y el 29, pon 16 y 29).</div>
-        <div class="row2">
-          <div>
-            <label class="field-label" for="meta-quincena-dia1-edit">Día de tu 1er pago del mes</label>
-            <input type="number" id="meta-quincena-dia1-edit" min="1" max="31" placeholder="1">
-          </div>
-          <div>
-            <label class="field-label" for="meta-quincena-dia2-edit">Día de tu 2do pago del mes</label>
-            <input type="number" id="meta-quincena-dia2-edit" min="1" max="31" placeholder="16">
-          </div>
-        </div>
+        <label class="field-label">Toca tus 2 días de pago</label>
+        <div class="dia-pago-grid" id="meta-dia-pago-grid"></div>
+        <div class="dia-pago-leyenda"><span><i class="i1"></i>1er pago</span><span><i class="i2"></i>2do pago</span></div>
+        <input type="hidden" id="meta-quincena-dia1-edit">
+        <input type="hidden" id="meta-quincena-dia2-edit">
         <div class="periodo-chips" id="meta-periodo-chips"></div>
       </div>
       <div class="sheet-text campo-oculto" style="margin-top:8px" id="meta-frecuencia-decenal-nota">Decenal reparte el mes en 3 periodos fijos: días 1-10, 11-20 y 21 al último día del mes.</div>
@@ -2768,12 +2771,55 @@ function actualizarPreviewPeriodo(dia1El, dia2El, chipsEl) {
   );
 }
 
+// --- Selector de días de pago: cuadrícula de 1 a 31 que se toca en vez de
+// escribir el número — más rápido de ajustar cuando tu fecha de pago
+// cambia. Toca un día para marcarlo (1er pago, luego 2do); tócalo otra vez
+// para quitarlo; si tocas un tercero con los 2 ya puestos, se reemplaza el
+// más viejo. Sigue guardando el resultado en los mismos inputs (ocultos)
+// de siempre, así el resto del código (vista previa, guardado) no cambia. ---
+function crearSelectorDias(gridEl, dia1El, dia2El) {
+  let sel = [];
+  function pintar() {
+    gridEl.innerHTML = '';
+    for (let d = 1; d <= 31; d++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dia-btn';
+      btn.textContent = d;
+      const idx = sel.indexOf(d);
+      if (idx === 0) btn.classList.add('sel-1');
+      else if (idx === 1) btn.classList.add('sel-2');
+      btn.addEventListener('click', function() {
+        const i = sel.indexOf(d);
+        if (i !== -1) sel.splice(i, 1);
+        else { sel.push(d); if (sel.length > 2) sel.shift(); }
+        pintar();
+        dia1El.value = sel[0] || '';
+        dia2El.value = sel[1] || '';
+        dia1El.dispatchEvent(new Event('input'));
+        dia2El.dispatchEvent(new Event('input'));
+      });
+      gridEl.appendChild(btn);
+    }
+  }
+  pintar();
+  return {
+    set: function(d1, d2) {
+      sel = [];
+      if (d1) sel.push(Number(d1));
+      if (d2 && Number(d2) !== Number(d1)) sel.push(Number(d2));
+      pintar();
+    }
+  };
+}
+
 const repartoPctEl = document.getElementById('reparto-quincena-pct');
 const repartoBarEl = document.getElementById('reparto-bar');
 const metaInputEl = document.getElementById('meta-ahorro-input');
 const dia1El = document.getElementById('quincena-dia1');
 const dia2El = document.getElementById('quincena-dia2');
 const previewEl = document.getElementById('periodo-chips');
+const selectorDias = crearSelectorDias(document.getElementById('dia-pago-grid'), dia1El, dia2El);
 [repartoPctEl, metaInputEl].forEach(function(el) {
   el.addEventListener('input', function() { actualizarRepartoUI(repartoPctEl, repartoBarEl, metaInputEl); });
 });
@@ -2787,6 +2833,7 @@ const metaInputEditEl = document.getElementById('meta-monto-edit');
 const dia1EditEl = document.getElementById('meta-quincena-dia1-edit');
 const dia2EditEl = document.getElementById('meta-quincena-dia2-edit');
 const previewEditEl = document.getElementById('meta-periodo-chips');
+const selectorDiasEdit = crearSelectorDias(document.getElementById('meta-dia-pago-grid'), dia1EditEl, dia2EditEl);
 [repartoPctEditEl, metaInputEditEl].forEach(function(el) {
   el.addEventListener('input', function() { actualizarRepartoUI(repartoPctEditEl, repartoBarEditEl, metaInputEditEl); });
 });
@@ -2795,7 +2842,7 @@ const previewEditEl = document.getElementById('meta-periodo-chips');
 });
 
 const TEXTO_INFO_INGRESO_MENSUAL =
-  '¿Qué es?\nTu ingreso mensual aproximado (suma de todas tus quincenas o pagos).\n\n' +
+  '¿Qué es?\nLa suma de TODOS tus pagos del mes juntos — si cobras quincenal, tus dos quincenas sumadas, no el monto de un solo pago.\n\n' +
   '¿Para qué sirve?\nKashly lo usa para repartir tu presupuesto entre tus periodos de pago.\n\n' +
   '¿Cuándo cambia?\nDespués de un mes completo de historial, Kashly calcula automáticamente el promedio real de tus ingresos y ya no usa este número.';
 document.getElementById('btn-info-ingreso-mensual').addEventListener('click', function() {
@@ -2850,8 +2897,7 @@ document.getElementById('btn-editar-meta').addEventListener('click', function() 
   document.getElementById('meta-frecuencia-edit').value = freq;
   actualizarCamposFrecuencia(freq, 'meta-campo-quincenal-edit', 'meta-campo-semanal-edit');
   actualizarPreviewIngresoMensual(document.getElementById('meta-ingreso-mensual-edit'), document.getElementById('meta-ingreso-mensual-preview'), freq);
-  document.getElementById('meta-quincena-dia1-edit').value = config.quincenaDia1 || 1;
-  document.getElementById('meta-quincena-dia2-edit').value = config.quincenaDia2 || 16;
+  selectorDiasEdit.set(config.quincenaDia1 || 1, config.quincenaDia2 || 16);
   document.getElementById('meta-semana-dia-edit').value = config.semanaDia !== undefined ? config.semanaDia : 5;
   const repartoEdit = pctPrimeraQuincena();
   document.getElementById('meta-reparto-quincena-pct-edit').value = repartoEdit;
@@ -2886,8 +2932,7 @@ function cargarFormAjustes() {
   const freq = config.frecuenciaPago || 'quincenal';
   document.getElementById('frecuencia-pago').value = freq;
   actualizarCamposFrecuencia(freq, 'campo-frecuencia-quincenal', 'campo-frecuencia-semanal');
-  document.getElementById('quincena-dia1').value = config.quincenaDia1 || 1;
-  document.getElementById('quincena-dia2').value = config.quincenaDia2 || 16;
+  selectorDias.set(config.quincenaDia1 || 1, config.quincenaDia2 || 16);
   document.getElementById('semana-dia').value = config.semanaDia !== undefined ? config.semanaDia : 5;
   const repartoAjustes = pctPrimeraQuincena();
   document.getElementById('reparto-quincena-pct').value = repartoAjustes;
