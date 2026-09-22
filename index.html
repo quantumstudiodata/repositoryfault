@@ -1539,17 +1539,20 @@ select option { background: var(--card-solid); color: var(--ink); }
     </select>
 
     <div id="campo-frecuencia-quincenal" style="margin-top:14px">
+      <div class="sheet-text" style="margin-bottom:10px">¿Qué día del mes te depositan? Si te pagan dos veces al mes, pon aquí esos dos días (ej. si cobras el 16 y el 29, pon 16 y 29).</div>
       <div class="row2">
         <div>
-          <label class="field-label" for="quincena-dia1">1er periodo de pago empieza el día</label>
+          <label class="field-label" for="quincena-dia1">Día de tu 1er pago del mes</label>
           <input type="number" id="quincena-dia1" min="1" max="31" placeholder="1">
         </div>
         <div>
-          <label class="field-label" for="quincena-dia2">2do periodo de pago empieza el día</label>
+          <label class="field-label" for="quincena-dia2">Día de tu 2do pago del mes</label>
           <input type="number" id="quincena-dia2" min="1" max="31" placeholder="16">
         </div>
       </div>
+      <div class="sheet-text" id="periodo-preview" style="margin-top:8px"></div>
       <label class="field-label" for="reparto-quincena-pct" style="margin-top:14px">¿Cómo repartes tu meta de ahorro entre las dos quincenas?</label>
+      <div class="sheet-text" style="margin-bottom:6px">Mueve la barra si quieres ahorrar más en una quincena que en la otra (por ejemplo, si una te paga más). Al centro reparte parejo.</div>
       <input type="range" id="reparto-quincena-pct" min="1" max="99" step="1" value="50" style="width:100%">
       <div class="sheet-text" id="reparto-quincena-pct-txt" style="margin-top:4px">50% primera quincena · 50% segunda quincena</div>
     </div>
@@ -2071,17 +2074,20 @@ select option { background: var(--card-solid); color: var(--ink); }
     </select>
 
     <div id="meta-campo-quincenal-edit" style="margin-top:14px">
+      <div class="sheet-text" style="margin-bottom:10px">¿Qué día del mes te depositan? Si te pagan dos veces al mes, pon aquí esos dos días (ej. si cobras el 16 y el 29, pon 16 y 29).</div>
       <div class="row2">
         <div>
-          <label class="field-label" for="meta-quincena-dia1-edit">1er periodo de pago empieza el día</label>
+          <label class="field-label" for="meta-quincena-dia1-edit">Día de tu 1er pago del mes</label>
           <input type="number" id="meta-quincena-dia1-edit" min="1" max="31" placeholder="1">
         </div>
         <div>
-          <label class="field-label" for="meta-quincena-dia2-edit">2do periodo de pago empieza el día</label>
+          <label class="field-label" for="meta-quincena-dia2-edit">Día de tu 2do pago del mes</label>
           <input type="number" id="meta-quincena-dia2-edit" min="1" max="31" placeholder="16">
         </div>
       </div>
+      <div class="sheet-text" id="meta-periodo-preview" style="margin-top:8px"></div>
       <label class="field-label" for="meta-reparto-quincena-pct-edit" style="margin-top:14px">¿Cómo repartes tu meta de ahorro entre las dos quincenas?</label>
+      <div class="sheet-text" style="margin-bottom:6px">Mueve la barra si quieres ahorrar más en una quincena que en la otra. Al centro reparte parejo.</div>
       <input type="range" id="meta-reparto-quincena-pct-edit" min="1" max="99" step="1" value="50" style="width:100%">
       <div class="sheet-text" id="meta-reparto-quincena-pct-edit-txt" style="margin-top:4px">50% primera quincena · 50% segunda quincena</div>
     </div>
@@ -2623,16 +2629,80 @@ function aplicarYGuardarMeta(val, freq, dia1, dia2, semanaDia, ingresoMensual, r
 }
 
 // --- Reparto de la meta de ahorro entre quincenas: el slider va de 1 a 99
-// (% que se lleva la primera quincena) y el texto de abajo se actualiza en
-// vivo para que quede claro qué le toca a cada una. ---
-function textoRepartoQuincena(pct) {
-  return pct + '% primera quincena · ' + (100 - pct) + '% segunda quincena';
+// (% que se lleva la primera quincena) y el texto de abajo muestra tanto el
+// % como el monto en pesos de cada quincena, para que no haya que hacer la
+// cuenta mentalmente. ---
+function textoRepartoQuincena(pct, metaMensual) {
+  const meta = Number(metaMensual) || 0;
+  const monto1 = Math.round(meta * pct) / 100;
+  const monto2 = Math.round(meta * (100 - pct)) / 100;
+  return pct + '% (' + fmt(monto1) + ') primera quincena · ' + (100 - pct) + '% (' + fmt(monto2) + ') segunda quincena';
 }
-document.getElementById('reparto-quincena-pct').addEventListener('input', function() {
-  document.getElementById('reparto-quincena-pct-txt').textContent = textoRepartoQuincena(parseInt(this.value, 10));
+
+// --- Muestra, con los días que el usuario está escribiendo ahora mismo (no
+// necesariamente ya guardados), en qué fechas cae cada quincena y en cuál de
+// las dos está hoy — así no hay que adivinar ni hacer cuentas con el
+// calendario. ---
+function previewPeriodosQuincena(dia1, dia2) {
+  if (!dia1 || !dia2 || isNaN(dia1) || isNaN(dia2) || dia1 === dia2 || dia1 < 1 || dia1 > 31 || dia2 < 1 || dia2 > 31) return '';
+  const orig = { d1: config.quincenaDia1, d2: config.quincenaDia2, freq: config.frecuenciaPago };
+  config.quincenaDia1 = dia1;
+  config.quincenaDia2 = dia2;
+  config.frecuenciaPago = 'quincenal';
+  const hoy = new Date();
+  const y = hoy.getFullYear(), m = hoy.getMonth();
+  function fechaISO(dia) {
+    const dd = diaSeguro(y, m, dia);
+    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(dd).padStart(2, '0');
+  }
+  const p1 = periodoDe(fechaISO(dia1), 'quincena');
+  const p2 = periodoDe(fechaISO(dia2), 'quincena');
+  const actual = periodoDe(hoyISO(), 'quincena');
+  config.quincenaDia1 = orig.d1;
+  config.quincenaDia2 = orig.d2;
+  config.frecuenciaPago = orig.freq;
+  if (!p1 || !p2) return '';
+  let txt = 'Periodo 1: ' + p1.label + ' · Periodo 2: ' + p2.label + '.';
+  if (actual) txt += ' Hoy estás en el Periodo ' + (actual.qId === p1.qId ? 1 : 2) + '.';
+  return txt;
+}
+
+function actualizarRepartoUI(inputPct, txtEl, metaInputEl) {
+  const pct = parseInt(inputPct.value, 10) || 50;
+  const meta = parseFloat(metaInputEl.value) || 0;
+  txtEl.textContent = textoRepartoQuincena(pct, meta);
+}
+function actualizarPreviewPeriodo(dia1El, dia2El, previewEl) {
+  previewEl.textContent = previewPeriodosQuincena(
+    parseInt(dia1El.value, 10),
+    parseInt(dia2El.value, 10)
+  );
+}
+
+const repartoPctEl = document.getElementById('reparto-quincena-pct');
+const repartoTxtEl = document.getElementById('reparto-quincena-pct-txt');
+const metaInputEl = document.getElementById('meta-ahorro-input');
+const dia1El = document.getElementById('quincena-dia1');
+const dia2El = document.getElementById('quincena-dia2');
+const previewEl = document.getElementById('periodo-preview');
+[repartoPctEl, metaInputEl].forEach(function(el) {
+  el.addEventListener('input', function() { actualizarRepartoUI(repartoPctEl, repartoTxtEl, metaInputEl); });
 });
-document.getElementById('meta-reparto-quincena-pct-edit').addEventListener('input', function() {
-  document.getElementById('meta-reparto-quincena-pct-edit-txt').textContent = textoRepartoQuincena(parseInt(this.value, 10));
+[dia1El, dia2El].forEach(function(el) {
+  el.addEventListener('input', function() { actualizarPreviewPeriodo(dia1El, dia2El, previewEl); });
+});
+
+const repartoPctEditEl = document.getElementById('meta-reparto-quincena-pct-edit');
+const repartoTxtEditEl = document.getElementById('meta-reparto-quincena-pct-edit-txt');
+const metaInputEditEl = document.getElementById('meta-monto-edit');
+const dia1EditEl = document.getElementById('meta-quincena-dia1-edit');
+const dia2EditEl = document.getElementById('meta-quincena-dia2-edit');
+const previewEditEl = document.getElementById('meta-periodo-preview');
+[repartoPctEditEl, metaInputEditEl].forEach(function(el) {
+  el.addEventListener('input', function() { actualizarRepartoUI(repartoPctEditEl, repartoTxtEditEl, metaInputEditEl); });
+});
+[dia1EditEl, dia2EditEl].forEach(function(el) {
+  el.addEventListener('input', function() { actualizarPreviewPeriodo(dia1EditEl, dia2EditEl, previewEditEl); });
 });
 
 const TEXTO_INFO_INGRESO_MENSUAL =
@@ -2695,7 +2765,8 @@ document.getElementById('btn-editar-meta').addEventListener('click', function() 
   document.getElementById('meta-semana-dia-edit').value = config.semanaDia !== undefined ? config.semanaDia : 5;
   const repartoEdit = pctPrimeraQuincena();
   document.getElementById('meta-reparto-quincena-pct-edit').value = repartoEdit;
-  document.getElementById('meta-reparto-quincena-pct-edit-txt').textContent = textoRepartoQuincena(repartoEdit);
+  actualizarRepartoUI(repartoPctEditEl, repartoTxtEditEl, metaInputEditEl);
+  actualizarPreviewPeriodo(dia1EditEl, dia2EditEl, previewEditEl);
   document.getElementById('overlay-meta').classList.add('show');
 });
 document.getElementById('meta-close').addEventListener('click', function() {
@@ -2730,7 +2801,8 @@ function cargarFormAjustes() {
   document.getElementById('semana-dia').value = config.semanaDia !== undefined ? config.semanaDia : 5;
   const repartoAjustes = pctPrimeraQuincena();
   document.getElementById('reparto-quincena-pct').value = repartoAjustes;
-  document.getElementById('reparto-quincena-pct-txt').textContent = textoRepartoQuincena(repartoAjustes);
+  actualizarRepartoUI(repartoPctEl, repartoTxtEl, metaInputEl);
+  actualizarPreviewPeriodo(dia1El, dia2El, previewEl);
   document.getElementById('saldo-ahorrado-input').value = Number(config.saldoAhorrado) || 0;
   document.getElementById('saldo-inicial-input').value = config.saldoInicial !== undefined && config.saldoInicial !== null ? Number(config.saldoInicial) : '';
   renderAjustesResumen();
@@ -3528,6 +3600,11 @@ function fmtCompact(n) {
 }
 
 function diasEnMes(y, m) { return new Date(y, m + 1, 0).getDate(); }
+// Si el usuario configuró el día 29, 30 o 31 como día de pago, en meses más
+// cortos (sobre todo febrero) ese día no existe — new Date(y, m, 29) en
+// febrero de un año no bisiesto se "desborda" solo al 1 de marzo, corriendo
+// todo el periodo un mes. Aquí se recorta al último día real de ese mes.
+function diaSeguro(y, m, dia) { return Math.min(dia, diasEnMes(y, m)); }
 
 // --- Periodo "corto" (quincena/semana/mes) configurable según la frecuencia
 // de pago que el usuario definió en Ajustes. 'quincena' como valor de modo
@@ -3589,25 +3666,25 @@ function periodoDe(fechaStr, modo) {
   let dia2 = Number(config.quincenaDia2) || 16;
   if (dia1 === dia2) dia2 = dia1 < 28 ? dia1 + 1 : 1;
   const dHoy = new Date(y, m, day).getTime();
-  const startAEsteMes = new Date(y, m, dia1).getTime();
-  const startBEsteMes = new Date(y, m, dia2).getTime();
+  const startAEsteMes = new Date(y, m, diaSeguro(y, m, dia1)).getTime();
+  const startBEsteMes = new Date(y, m, diaSeguro(y, m, dia2)).getTime();
   let start, qId;
   if (dia1 < dia2) {
     if (dHoy >= startAEsteMes && dHoy < startBEsteMes) { start = startAEsteMes; qId = 0; }
     else if (dHoy >= startBEsteMes) { start = startBEsteMes; qId = 1; }
-    else { start = new Date(y, m - 1, dia2).getTime(); qId = 1; }
+    else { const mAnt = m - 1 < 0 ? 11 : m - 1, yAnt = m - 1 < 0 ? y - 1 : y; start = new Date(yAnt, mAnt, diaSeguro(yAnt, mAnt, dia2)).getTime(); qId = 1; }
   } else {
     if (dHoy >= startBEsteMes && dHoy < startAEsteMes) { start = startBEsteMes; qId = 1; }
     else if (dHoy >= startAEsteMes) { start = startAEsteMes; qId = 0; }
-    else { start = new Date(y, m - 1, dia1).getTime(); qId = 0; }
+    else { const mAnt = m - 1 < 0 ? 11 : m - 1, yAnt = m - 1 < 0 ? y - 1 : y; start = new Date(yAnt, mAnt, diaSeguro(yAnt, mAnt, dia1)).getTime(); qId = 0; }
   }
   const inicio = new Date(start);
   const sy = inicio.getFullYear(), sm = inicio.getMonth();
   let fin;
   if (dia1 < dia2) {
-    fin = qId === 0 ? new Date(sy, sm, dia2 - 1) : new Date(sy, sm + 1, dia1 - 1);
+    fin = qId === 0 ? new Date(sy, sm, diaSeguro(sy, sm, dia2) - 1) : new Date(sy, sm + 1, diaSeguro(sy, sm + 1, dia1) - 1);
   } else {
-    fin = qId === 1 ? new Date(sy, sm, dia1 - 1) : new Date(sy, sm + 1, dia2 - 1);
+    fin = qId === 1 ? new Date(sy, sm, diaSeguro(sy, sm, dia1) - 1) : new Date(sy, sm + 1, diaSeguro(sy, sm + 1, dia2) - 1);
   }
   const label = inicio.getDate() + ' ' + mesesCortos[sm] + '-' + fin.getDate() + ' ' + mesesCortos[fin.getMonth()];
   return { key: sy + '-' + sm + '-' + qId, label: label, start: start, qId: qId };
