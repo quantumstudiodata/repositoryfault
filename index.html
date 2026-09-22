@@ -4267,13 +4267,31 @@ function ingresoBaseMensual() {
   return { monto: Number(config.ingresoMensualEstimado) || 0, aprendido: false };
 }
 
+// Suma lo que ya se registró como ingreso REAL en este periodo (no una
+// proyección). Como los pagos de la usuaria nunca son mitad y mitad entre
+// sus dos quincenas, dividir su ingreso mensual estimado entre 2 da un
+// número que no corresponde a lo que en verdad cobró ese periodo. En
+// cuanto ya capturó su pago de este periodo, se usa ese monto exacto en
+// vez de la estimación repartida.
+function ingresoRealDelPeriodo(modo, periodo) {
+  let total = 0;
+  gastos.forEach(function(g) {
+    if (g.tipo !== 'ingreso') return;
+    const p = periodoDe(g.fecha, modo);
+    if (p && p.key === periodo.key) total += Number(g.monto) || 0;
+  });
+  return total;
+}
+
 function calcularPresupuesto(modo) {
   const periodo = periodoDe(hoyISO(), modo);
   const metaAhorroPeriodo = metaAhorroDelPeriodo(modo, periodo);
 
   const base = ingresoBaseMensual();
   const numPeriodos = modo === 'mensual' ? 1 : periodosPorMes();
-  const ingresoPeriodo = base.monto / numPeriodos;
+  const ingresoReal = ingresoRealDelPeriodo(modo, periodo);
+  const usaIngresoReal = ingresoReal > 0;
+  const ingresoPeriodo = usaIngresoReal ? ingresoReal : (base.monto / numPeriodos);
   const disponibleGasto = Math.max(0, ingresoPeriodo - metaAhorroPeriodo);
 
   const historial = {};
@@ -4351,6 +4369,7 @@ function calcularPresupuesto(modo) {
     modo: modo, periodoLabel: periodo.label, overrideKey: overrideKey,
     metaAhorroPeriodo: metaAhorroPeriodo, disponibleGasto: disponibleGasto,
     ingresoPeriodo: ingresoPeriodo, ingresoMensualBase: base.monto, aprendido: base.aprendido,
+    usaIngresoReal: usaIngresoReal,
     filas: filas
   };
 }
@@ -4379,10 +4398,15 @@ function renderPresupuesto() {
   const warningEl = document.getElementById('presupuesto-warning');
 
   document.getElementById('btn-info-presupuesto').onclick = function() {
-    const fuente = p.aprendido
-      ? 'tu ingreso mensual (calculado con el promedio de tus meses anteriores)'
-      : 'tu ingreso mensual estimado';
-    const texto = 'Se calcula con base en ' + fuente + ' de ' + fmt(p.ingresoMensualBase) + ', dividido entre tus periodos de pago. Para este periodo corresponden ' + fmt(p.ingresoPeriodo) + '.\n\nA esa cantidad se le resta tu meta de ahorro de este periodo (' + fmt(p.metaAhorroPeriodo) + '), por lo que tu presupuesto disponible es de ' + fmt(p.disponibleGasto) + '.';
+    let texto;
+    if (p.usaIngresoReal) {
+      texto = 'Ya registraste ' + fmt(p.ingresoPeriodo) + ' de ingreso en este periodo, así que se usa ese monto real (no un estimado repartido a la mitad).\n\nA esa cantidad se le resta tu meta de ahorro de este periodo (' + fmt(p.metaAhorroPeriodo) + '), por lo que tu presupuesto disponible es de ' + fmt(p.disponibleGasto) + '.';
+    } else {
+      const fuente = p.aprendido
+        ? 'tu ingreso mensual (calculado con el promedio de tus meses anteriores)'
+        : 'tu ingreso mensual estimado';
+      texto = 'Todavía no registras ingreso en este periodo, así que se usa ' + fuente + ' de ' + fmt(p.ingresoMensualBase) + ' dividido en partes iguales entre tus periodos, dando ' + fmt(p.ingresoPeriodo) + ' para este periodo. En cuanto captures tu pago real de este periodo, se usará ese monto exacto en vez de esta estimación.\n\nA esa cantidad se le resta tu meta de ahorro de este periodo (' + fmt(p.metaAhorroPeriodo) + '), por lo que tu presupuesto disponible es de ' + fmt(p.disponibleGasto) + '.';
+    }
     mostrarInfo('Presupuesto del periodo (' + p.periodoLabel + ')', texto);
   };
 
