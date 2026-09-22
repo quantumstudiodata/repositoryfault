@@ -1333,19 +1333,6 @@ select option { background: var(--card-solid); color: var(--ink); }
     </div>
   </div>
 
-  <div class="seccion-inicio" id="seccion-movimientos" data-key="movimientos">
-    <div class="section-row">
-      <div class="section-label">Movimientos</div>
-      <div class="section-count" id="section-count"></div>
-    </div>
-    <div id="lista">
-      <div class="skeleton"></div>
-      <div class="skeleton" style="opacity:.7"></div>
-      <div class="skeleton" style="opacity:.45"></div>
-    </div>
-    <button type="button" class="btn-ghost" id="btn-ver-mas" style="display:none"></button>
-  </div>
-
   </div>
 </div>
 
@@ -1456,6 +1443,19 @@ select option { background: var(--card-solid); color: var(--ink); }
     </div>
     <button type="submit" class="btn-add" id="btn-add">Agregar</button>
   </form>
+
+  <div class="seccion-inicio" id="seccion-movimientos" style="margin-top:18px">
+    <div class="section-row">
+      <div class="section-label">Movimientos</div>
+      <div class="section-count" id="section-count"></div>
+    </div>
+    <div id="lista">
+      <div class="skeleton"></div>
+      <div class="skeleton" style="opacity:.7"></div>
+      <div class="skeleton" style="opacity:.45"></div>
+    </div>
+    <button type="button" class="btn-ghost" id="btn-ver-mas" style="display:none"></button>
+  </div>
 </div>
 
 <!-- ===== AJUSTES ===== -->
@@ -2356,8 +2356,7 @@ const FILTROS_DEF = [
 ];
 const SECCIONES_INICIO = [
   { key: 'analisis', label: 'Análisis' },
-  { key: 'presupuesto', label: 'Presupuesto' },
-  { key: 'movimientos', label: 'Movimientos' }
+  { key: 'presupuesto', label: 'Presupuesto' }
 ];
 const ANALISIS_INICIO_DEF = [
   { key: 'estemes', label: 'Este mes' },
