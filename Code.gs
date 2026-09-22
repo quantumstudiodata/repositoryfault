@@ -34,6 +34,9 @@ function doPost(e) {
     } else if (body.action === 'set-config-batch') {
       guardarConfigValores(body.valores);
       result = { ok: true };
+    } else if (body.action === 'reset-all') {
+      reiniciarTodo();
+      result = { ok: true };
     } else {
       result = { ok: false, error: 'Acción no soportada: ' + body.action };
     }
@@ -237,6 +240,28 @@ function guardarConfigValores(valores) {
     Object.keys(valores).forEach(function(clave) {
       escribirValorConfig(sheet, clave, valores[clave]);
     });
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Borra todas las filas de datos de Movimientos y de Config (deja los
+// encabezados intactos). Toma ambos locks porque toca las dos hojas y no
+// queremos que un guardarMovimiento/guardarConfigValor a medias se cruce
+// con el borrado.
+function reiniciarTodo() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const hojaMov = getSheet();
+    if (hojaMov.getLastRow() > 1) {
+      hojaMov.deleteRows(2, hojaMov.getLastRow() - 1);
+    }
+    const hojaConfig = getConfigSheet();
+    if (hojaConfig.getLastRow() > 1) {
+      hojaConfig.deleteRows(2, hojaConfig.getLastRow() - 1);
+    }
     return true;
   } finally {
     lock.releaseLock();

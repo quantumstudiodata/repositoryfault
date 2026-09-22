@@ -1458,6 +1458,12 @@ select option { background: var(--card-solid); color: var(--ink); }
   </div>
 
   <div class="card">
+    <div class="card-lbl">Reinicio total</div>
+    <div style="font-size:9.5px;color:var(--muted);margin:6px 0 14px;line-height:1.5">Borra absolutamente todo: todos tus gastos, ingresos y ahorros registrados, tu configuración inicial y tu progreso de Kashly financiero. Esto no se puede deshacer.</div>
+    <button type="button" class="btn-danger" id="btn-reiniciar-todo" style="width:100%">Reiniciar todo</button>
+  </div>
+
+  <div class="card">
     <div class="card-lbl">Acerca de</div>
     <div class="acerca-txt">Kashly · v1.0<br>Tu control de gastos, ingresos y presupuesto.</div>
   </div>
@@ -2186,7 +2192,13 @@ function procesarCola() {
 }
 function guardarConSincronizacion(payload) {
   guardarCacheLocal();
-  apiPost(payload).catch(function() { encolar(payload); });
+  apiPost(payload).then(function(res) {
+    // El fetch puede resolver sin error de red y aun así traer ok:false (el
+    // servidor rechazó el cambio, p.ej. por un bloqueo ocupado) — sin este
+    // chequeo, ese caso se daba por guardado y el cambio se perdía en
+    // silencio hasta que algo lo sobrescribiera en la siguiente carga.
+    if (!res || !res.ok) encolar(payload);
+  }).catch(function() { encolar(payload); });
 }
 // Guarda varias claves de config en UN solo viaje al servidor en vez de uno
 // por clave. Cada gasto/ingreso que registras ya dispara de por sí varias
@@ -2198,7 +2210,9 @@ function guardarConSincronizacion(payload) {
 function guardarVariosConSincronizacion(valores) {
   guardarCacheLocal();
   const payload = { action: 'set-config-batch', valores: valores };
-  apiPost(payload).catch(function() { encolar(payload); });
+  apiPost(payload).then(function(res) {
+    if (!res || !res.ok) encolar(payload);
+  }).catch(function() { encolar(payload); });
 }
 function actualizarIndicadorOffline() {
   const pendientes = leerCola().length;
@@ -5931,6 +5945,40 @@ function reiniciarProgresoGato() {
   showToast('Tu progreso se reinició');
 }
 document.getElementById('btn-reiniciar-progreso-gato').addEventListener('click', reiniciarProgresoGato);
+
+// --- Reinicio total: borra todos los movimientos guardados en el servidor
+// (no solo la configuración) y deja la app como recién instalada. A
+// diferencia de guardarConSincronizacion, aquí SÍ se espera la respuesta del
+// servidor antes de limpiar lo local — si el borrado en el servidor falla,
+// no queremos que el cliente "olvide" los movimientos mientras siguen ahí. ---
+function reiniciarTodo() {
+  if (!confirm('¿Reiniciar TODO?\n\nSe borran todos tus gastos, ingresos y ahorros registrados, tu configuración inicial y tu progreso de Kashly financiero.\n\nEsto no se puede deshacer.')) return;
+  if (!confirm('De verdad, esto borra todo permanentemente. ¿Continuar?')) return;
+
+  const btn = document.getElementById('btn-reiniciar-todo');
+  btn.disabled = true;
+  btn.textContent = 'Reiniciando...';
+
+  apiPost({ action: 'reset-all' }).then(function(res) {
+    if (!res || !res.ok) throw new Error((res && res.error) || 'El servidor rechazó el reinicio');
+    gastos = [];
+    config = {};
+    inicializarCuentasSiCorresponde();
+    guardarCacheLocal();
+    guardarCola([]);
+    render();
+    renderPantallaGato();
+    showToast('Kashly se reinició por completo');
+    btn.disabled = false;
+    btn.textContent = 'Reiniciar todo';
+    abrirConfigInicial();
+  }).catch(function(err) {
+    btn.disabled = false;
+    btn.textContent = 'Reiniciar todo';
+    showToast('No se pudo reiniciar: revisa tu conexión e intenta de nuevo', true);
+  });
+}
+document.getElementById('btn-reiniciar-todo').addEventListener('click', reiniciarTodo);
 
 const NOTIF_ICONOS = { presupuesto: '⚠', xpsemanal: '✦', cercanivel: '→', logro: '🏆', nivel: '★' };
 // Notificaciones guardadas antes de que existiera el campo "tipo" no lo
