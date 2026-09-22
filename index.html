@@ -1527,7 +1527,9 @@ select option { background: var(--card-solid); color: var(--ink); }
     <input type="number" id="meta-ahorro-input" placeholder="0.00" step="0.01">
 
     <label class="field-label" for="ingreso-mensual-input" style="margin-top:14px">Ingreso mensual estimado <button type="button" class="info-btn" id="btn-info-ingreso-mensual">?</button></label>
+    <div class="sheet-text" style="margin-bottom:6px">La suma de TODOS tus pagos del mes juntos (si cobras quincenal, tus dos quincenas sumadas — no un solo pago).</div>
     <input type="number" id="ingreso-mensual-input" placeholder="0.00" step="0.01">
+    <div class="sheet-text" id="ingreso-mensual-preview" style="margin-top:4px"></div>
 
     <label class="field-label" for="frecuencia-pago" style="margin-top:14px">¿Cómo es tu fecha de pago?</label>
     <select id="frecuencia-pago">
@@ -1617,7 +1619,7 @@ select option { background: var(--card-solid); color: var(--ink); }
 
       <div class="ci-step" data-step="1">
         <div class="ci-q">¿Cuánto es tu ingreso mensual aproximado?</div>
-        <label class="ci-lbl">MONTO</label>
+        <label class="ci-lbl">MONTO — TODOS TUS PAGOS DEL MES JUNTOS</label>
         <input type="number" class="ci-input" id="ci-ingreso" placeholder="0.00" step="0.01">
         <label class="ci-lbl" style="margin-top:2px">¿CON QUÉ FRECUENCIA TE PAGAN?</label>
         <div class="ci-chip-row" id="ci-freq-chips">
@@ -1627,6 +1629,7 @@ select option { background: var(--card-solid); color: var(--ink); }
           <button type="button" class="ci-chip" data-freq="decenal">Decenal</button>
           <button type="button" class="ci-chip" data-freq="mensual">Mensual</button>
         </div>
+        <div class="ci-help" id="ci-ingreso-preview" style="display:none"></div>
       </div>
 
       <div class="ci-step" data-step="2">
@@ -2062,7 +2065,9 @@ select option { background: var(--card-solid); color: var(--ink); }
     <input type="number" id="meta-monto-edit" placeholder="0.00" step="0.01">
 
     <label class="field-label" for="meta-ingreso-mensual-edit" style="margin-top:14px">Ingreso mensual estimado <button type="button" class="info-btn" id="btn-info-ingreso-mensual-2">?</button></label>
+    <div class="sheet-text" style="margin-bottom:6px">La suma de TODOS tus pagos del mes juntos (si cobras quincenal, tus dos quincenas sumadas — no un solo pago).</div>
     <input type="number" id="meta-ingreso-mensual-edit" placeholder="0.00" step="0.01">
+    <div class="sheet-text" id="meta-ingreso-mensual-preview" style="margin-top:4px"></div>
 
     <label class="field-label" for="meta-frecuencia-edit" style="margin-top:14px">¿Cómo es tu fecha de pago?</label>
     <select id="meta-frecuencia-edit">
@@ -2760,6 +2765,7 @@ document.getElementById('btn-editar-meta').addEventListener('click', function() 
   const freq = config.frecuenciaPago || 'quincenal';
   document.getElementById('meta-frecuencia-edit').value = freq;
   actualizarCamposFrecuencia(freq, 'meta-campo-quincenal-edit', 'meta-campo-semanal-edit');
+  actualizarPreviewIngresoMensual(document.getElementById('meta-ingreso-mensual-edit'), document.getElementById('meta-ingreso-mensual-preview'), freq);
   document.getElementById('meta-quincena-dia1-edit').value = config.quincenaDia1 || 1;
   document.getElementById('meta-quincena-dia2-edit').value = config.quincenaDia2 || 16;
   document.getElementById('meta-semana-dia-edit').value = config.semanaDia !== undefined ? config.semanaDia : 5;
@@ -2803,6 +2809,7 @@ function cargarFormAjustes() {
   document.getElementById('reparto-quincena-pct').value = repartoAjustes;
   actualizarRepartoUI(repartoPctEl, repartoTxtEl, metaInputEl);
   actualizarPreviewPeriodo(dia1El, dia2El, previewEl);
+  actualizarPreviewIngresoMensual(document.getElementById('ingreso-mensual-input'), document.getElementById('ingreso-mensual-preview'), freq);
   document.getElementById('saldo-ahorrado-input').value = Number(config.saldoAhorrado) || 0;
   document.getElementById('saldo-inicial-input').value = config.saldoInicial !== undefined && config.saldoInicial !== null ? Number(config.saldoInicial) : '';
   renderAjustesResumen();
@@ -2886,11 +2893,33 @@ function ciRenderPaso() {
     }
   }
 }
+function actualizarPreviewIngresoMensual(inputEl, previewEl, freq) {
+  const txt = textoEquivalentePorPeriodo(inputEl.value, freq);
+  previewEl.textContent = txt;
+  if (previewEl.classList.contains('ci-help')) previewEl.style.display = txt ? 'block' : 'none';
+}
 document.querySelectorAll('#ci-freq-chips .ci-chip').forEach(function(chip) {
   chip.addEventListener('click', function() {
     document.querySelectorAll('#ci-freq-chips .ci-chip').forEach(function(c) { c.classList.remove('sel'); });
     chip.classList.add('sel');
+    actualizarPreviewIngresoMensual(document.getElementById('ci-ingreso'), document.getElementById('ci-ingreso-preview'), chip.dataset.freq);
   });
+});
+document.getElementById('ci-ingreso').addEventListener('input', function() {
+  const sel = document.querySelector('#ci-freq-chips .ci-chip.sel');
+  if (sel) actualizarPreviewIngresoMensual(this, document.getElementById('ci-ingreso-preview'), sel.dataset.freq);
+});
+document.getElementById('ingreso-mensual-input').addEventListener('input', function() {
+  actualizarPreviewIngresoMensual(this, document.getElementById('ingreso-mensual-preview'), document.getElementById('frecuencia-pago').value);
+});
+document.getElementById('frecuencia-pago').addEventListener('change', function() {
+  actualizarPreviewIngresoMensual(document.getElementById('ingreso-mensual-input'), document.getElementById('ingreso-mensual-preview'), this.value);
+});
+document.getElementById('meta-ingreso-mensual-edit').addEventListener('input', function() {
+  actualizarPreviewIngresoMensual(this, document.getElementById('meta-ingreso-mensual-preview'), document.getElementById('meta-frecuencia-edit').value);
+});
+document.getElementById('meta-frecuencia-edit').addEventListener('change', function() {
+  actualizarPreviewIngresoMensual(document.getElementById('meta-ingreso-mensual-edit'), document.getElementById('meta-ingreso-mensual-preview'), this.value);
 });
 document.querySelectorAll('.ci-plan-card').forEach(function(card) {
   card.addEventListener('click', function() {
@@ -2912,6 +2941,7 @@ function abrirConfigInicial() {
   document.querySelectorAll('#ci-freq-chips .ci-chip').forEach(function(c) {
     c.classList.toggle('sel', c.dataset.freq === freq);
   });
+  actualizarPreviewIngresoMensual(document.getElementById('ci-ingreso'), document.getElementById('ci-ingreso-preview'), freq);
   const plan = config.tipoPresupuesto || 'estricto';
   document.querySelectorAll('.ci-plan-card').forEach(function(c) {
     c.classList.toggle('sel', c.dataset.plan === plan);
@@ -4059,12 +4089,28 @@ function ingresoMensualAprendido() {
   const total = mesesCerrados.reduce(function(s, k) { return s + porMes[k]; }, 0);
   return total / mesesCerrados.length;
 }
-function periodosPorMes() {
-  const freq = config.frecuenciaPago || 'quincenal';
+function periodosPorMesDe(freq) {
   if (freq === 'semanal') return 52 / 12;
   if (freq === 'mensual') return 1;
   if (freq === 'decenal') return 3;
   return 2;
+}
+function periodosPorMes() {
+  return periodosPorMesDe(config.frecuenciaPago || 'quincenal');
+}
+const NOMBRE_PERIODO_FREQ = { semanal: 'semana', quincenal: 'quincena', catorcenal: 'catorcena', decenal: 'periodo', mensual: 'mes' };
+// --- "Ingreso mensual estimado" es justo eso: TODO lo que cobras en el mes
+// junto (si te pagan quincenal, tus DOS quincenas sumadas) — un error común
+// es escribir ahí solo el monto de un pago. Esta vista previa muestra a
+// cuánto equivale por periodo, para que el usuario pueda comparar contra su
+// pago real y notar el error antes de guardar. ---
+function textoEquivalentePorPeriodo(montoMensual, freq) {
+  const monto = Number(montoMensual) || 0;
+  if (monto <= 0) return '';
+  const n = periodosPorMesDe(freq);
+  const porPeriodo = monto / n;
+  const nombre = NOMBRE_PERIODO_FREQ[freq] || 'periodo';
+  return '= ' + fmt(porPeriodo) + ' por ' + nombre + ' (' + (Math.round(n * 10) / 10) + ' por mes)';
 }
 
 // --- Reparto desigual de la meta de ahorro entre las dos quincenas del mes.
