@@ -676,10 +676,9 @@ select option { background: var(--card-solid); color: var(--ink); }
 .gato-nivel-tab span { font-family: 'Space Grotesk', sans-serif; font-size: 9.5px; font-weight: 700; line-height: 1.25; max-width: 78px; }
 
 /* Kashly Financiero: vitrina */
-.gato-vitrina { border-radius: 20px; padding: 24px 18px; text-align: center; position: relative; background: linear-gradient(180deg, #1a1330, #0d0a1c); border: 1px solid rgba(255,209,102,0.18); margin-bottom: 12px; }
-.gato-vitrina::before { content: ''; position: absolute; top: 14px; left: 14px; right: 14px; bottom: 14px; border: 1px solid rgba(255,209,102,0.1); border-radius: 14px; pointer-events: none; }
+.gato-vitrina { text-align: center; position: relative; padding-top: 6px; margin-bottom: 18px; }
 .gato-life-stage { width: 230px; height: 230px; margin: 0 auto 14px; position: relative; cursor: pointer; }
-.gato-life-stage::before { content: ''; position: absolute; inset: -14%; background: radial-gradient(circle, rgba(255,209,102,0.22), transparent 70%); animation: gatoAura 3s ease-in-out infinite; }
+.gato-life-stage::before { content: ''; position: absolute; left: 50%; bottom: 4%; width: 74%; height: 32%; transform: translateX(-50%); background: radial-gradient(ellipse at center, rgba(255,209,102,0.32), transparent 72%); filter: blur(4px); animation: gatoAura 3s ease-in-out infinite; }
 .gato-mote { position: absolute; bottom: 34%; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px 1px rgba(255,209,102,0.8); animation: gatoMote 3.2s ease-in infinite; }
 .gato-mote:nth-child(2) { left: 26%; animation-delay: 0.6s; --mx: -16px; }
 .gato-mote:nth-child(3) { left: 74%; animation-delay: 1.4s; --mx: 18px; }
@@ -693,32 +692,30 @@ select option { background: var(--card-solid); color: var(--ink); }
 .gato-life-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.35), transparent 45%); }
 .gato-life-nums { display: flex; justify-content: space-between; font-size: 8px; color: var(--muted); margin-top: 5px; font-family: 'Space Grotesk', sans-serif; }
 
-.gato-animo-strip { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.1); text-align: left; position: relative; z-index: 1; }
-.gato-animo-strip-stage { width: 40px; height: 40px; flex-shrink: 0; }
-.gato-animo-strip-txt { flex: 1; }
-.gato-animo-strip-lbl { font-size: 7px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.gato-animo-strip-val { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: var(--accent-2); }
-.gato-animo-strip-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.gato-animo-strip-detalle { font-size: 8.5px; color: var(--muted); }
-
-.gato-racha-strip { margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.1); text-align: left; position: relative; z-index: 1; }
-.gato-racha-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
-.gato-racha-lbl-row { display: flex; align-items: center; gap: 6px; }
-.gato-racha-lbl { font-size: 7px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.gato-racha-mult { font-family: 'Space Grotesk', sans-serif; font-size: 8.5px; font-weight: 800; color: var(--gold); background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.3); border-radius: 999px; padding: 2px 8px; }
+.gato-nivel-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.gato-animo-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(124,245,196,0.12); border: 1px solid rgba(124,245,196,0.35); border-radius: 999px; padding: 2px 10px 2px 3px; margin: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gato-animo-chip:active { transform: scale(0.94); }
+.gato-animo-chip img { width: 16px; height: 16px; object-fit: contain; border-radius: 50%; display: block; }
+.gato-animo-chip span { font-family: 'Manrope', sans-serif; font-size: 9.5px; font-weight: 800; }
 
 .gato-siguiente-card { position: relative; }
 .gato-siguiente-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
 .gato-siguiente-badge {
-  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  font-family: 'Space Grotesk', sans-serif; font-size: 13.5px; font-weight: 800; color: #2a1608;
+  width: 42px; height: 42px; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 800; color: #2a1608;
+}
+.gato-siguiente-badge::before {
+  content: ''; position: absolute; inset: 0;
   background: linear-gradient(135deg, var(--gold), var(--accent));
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  box-shadow: 0 2px 6px -1px rgba(0,0,0,0.4);
 }
 .gato-siguiente-txt { flex: 1; min-width: 0; }
 .gato-siguiente-nombre { font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; }
 .gato-siguiente-falta { font-size: 10px; color: var(--gold); font-weight: 600; margin-top: 1px; }
-.gato-siguiente-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 12px; }
-.gato-siguiente-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--gold)); transition: width 0.4s ease; }
+.gato-siguiente-bar { display: flex; gap: 3px; margin-top: 14px; }
+.gato-siguiente-seg { flex: 1; height: 12px; border-radius: 1px; background: rgba(255,255,255,0.08); clip-path: polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%, 15% 50%); transition: background 0.3s ease; }
+.gato-siguiente-seg.on { background: linear-gradient(90deg, var(--accent), var(--gold)); }
 .gato-gem-row { display: flex; gap: 6px; }
 .gato-gem { flex: 1; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 700; color: var(--muted); background: rgba(255,255,255,0.05); border: 1px solid var(--line); }
 .gato-gem.done { background: linear-gradient(145deg, var(--gold), var(--accent)); color: #2a1608; border-color: transparent; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
@@ -1120,6 +1117,8 @@ select option { background: var(--card-solid); color: var(--ink); }
 
 /* ---- Racha semanal (modal ampliado) ---- */
 .racha-dias-txt { text-align: center; font-size: 12.5px; color: #f28b7a; font-weight: 700; }
+.racha-mult-row { display: flex; justify-content: center; margin-bottom: 10px; }
+.gato-racha-mult { font-family: 'Space Grotesk', sans-serif; font-size: 9.5px; font-weight: 800; color: var(--gold); background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.3); border-radius: 999px; padding: 3px 10px; }
 </style>
 </head>
 <body>
@@ -1726,8 +1725,14 @@ select option { background: var(--card-solid); color: var(--ink); }
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-head"><h2>Racha semanal</h2><button type="button" class="sheet-close" id="racha-close" aria-label="Cerrar">✕</button></div>
+    <div class="racha-mult-row"><span class="gato-racha-mult" id="racha-mult-modal">x1 XP</span></div>
     <div class="gato-gem-row" id="racha-gem-row" style="justify-content:center;margin-bottom:12px"></div>
     <div class="racha-dias-txt" id="racha-dias-txt">0 días seguidos</div>
+    <div class="sheet-text" style="text-align:center;margin-top:12px">Cada día que no te excedes del presupuesto, ganas XP extra.
+
+Más días seguidos = multiplicador más alto (x1, x2, x3).
+
+Si un día te excedes, la racha se reinicia.</div>
   </div>
 </div>
 
@@ -1787,28 +1792,17 @@ select option { background: var(--card-solid); color: var(--ink); }
       <span class="gato-mote"></span><span class="gato-mote"></span><span class="gato-mote"></span>
       <img class="gato-img" id="gato-avatar-img" src="" alt="Tu nivel">
     </div>
-    <div class="gato-avatar-nivel" id="gato-avatar-nivel">Nivel 1 · Inicial</div>
+    <div class="gato-nivel-row">
+      <span class="gato-avatar-nivel" id="gato-avatar-nivel">Nivel 1 · Inicial</span>
+      <button type="button" class="gato-animo-chip" id="btn-gato-animo-info" aria-label="Ver ánimo de hoy">
+        <img id="gato-avatar-animo-img" src="" alt="">
+        <span id="gato-avatar-animo" style="color:#7cf5c4">Tranquilo</span>
+      </button>
+    </div>
     <div class="gato-vit-sub" id="gato-avatar-sub">0 / 100 XP</div>
     <div class="gato-life-bar-wrap">
       <div class="gato-life-bar"><div class="gato-life-bar-fill" id="gato-life-bar-fill" style="width:0%"></div></div>
       <div class="gato-life-nums"><span id="gato-life-xp-actual">0 XP</span><span id="gato-life-xp-umbral">100 XP</span></div>
-    </div>
-
-    <div class="gato-animo-strip">
-      <div class="gato-animo-strip-stage"><img class="gato-img" id="gato-avatar-animo-img" src="" alt=""></div>
-      <div class="gato-animo-strip-txt">
-        <div class="gato-animo-strip-lbl">Ánimo de hoy</div>
-        <div class="gato-animo-strip-row"><span class="gato-animo-strip-val" id="gato-avatar-animo">Tranquilo</span><span class="gato-animo-strip-detalle" id="gato-avatar-animo-detalle"></span></div>
-      </div>
-      <button type="button" class="gato-info-btn" id="btn-gato-animo-info">?</button>
-    </div>
-
-    <div class="gato-racha-strip">
-      <div class="gato-racha-head">
-        <span class="gato-racha-lbl-row"><span class="gato-racha-lbl">Racha semanal</span><span class="gato-info-btn" id="btn-racha-info">?</span></span>
-        <span class="gato-racha-mult" id="gato-racha-mult">x1 XP</span>
-      </div>
-      <div class="gato-gem-row" id="gato-gem-row"></div>
     </div>
   </div>
 
@@ -1844,7 +1838,7 @@ select option { background: var(--card-solid); color: var(--ink); }
         <div class="gato-siguiente-falta" id="gato-siguiente-falta">Te faltan 70 XP</div>
       </div>
     </div>
-    <div class="gato-siguiente-bar"><div class="gato-siguiente-bar-fill" id="gato-siguiente-bar-fill"></div></div>
+    <div class="gato-siguiente-bar" id="gato-siguiente-bar"></div>
     <div class="sheet-text" id="gato-avatar-progreso" style="margin-top:10px"></div>
   </div>
 </div>
@@ -2462,12 +2456,14 @@ document.getElementById('btn-ir-ajustes-presu').addEventListener('click', functi
 document.getElementById('btn-ajustes-inicio').addEventListener('click', function() { irA('ajustes'); });
 
 // --- Info genérico (sheets con "?") ---
-function mostrarInfo(titulo, texto, imagenSrc) {
+function mostrarInfo(titulo, texto, imagenSrc, sinMarco) {
   document.getElementById('info-titulo').textContent = titulo;
   document.getElementById('info-texto').textContent = texto;
   const wrap = document.getElementById('info-img-wrap');
   if (imagenSrc) {
-    document.getElementById('info-img').src = imagenSrc;
+    const img = document.getElementById('info-img');
+    img.src = imagenSrc;
+    img.classList.toggle('marco-nivel', !sinMarco);
     wrap.style.display = 'flex';
   } else {
     wrap.style.display = 'none';
@@ -5077,6 +5073,7 @@ function renderRachaModal() {
     return '<div class="' + cls + '">' + d.label + '</div>';
   }).join('');
   document.getElementById('racha-dias-txt').textContent = rachaDiasSeguidos() + ' días seguidos';
+  document.getElementById('racha-mult-modal').textContent = 'x' + multiplicadorRacha() + ' XP';
 }
 document.getElementById('btn-float-streak').addEventListener('click', function() {
   renderRachaModal();
@@ -5803,13 +5800,6 @@ function abrirSheetGato(tabInicial) {
   document.getElementById('overlay-gato').classList.add('show');
 }
 
-const TEXTOS_ANIMO_CORTO = {
-  tranquilo: 'Has usado menos del 50% del presupuesto',
-  alerta: 'Has usado el 50 - 89% del presupuesto',
-  preocupado: 'Has usado el 90 - 99% del presupuesto',
-  colapsado: 'Te excediste del presupuesto (100%+)',
-  radiante: 'Cerraste bien tu periodo anterior'
-};
 const TEXTOS_ANIMO_INFO = {
   tranquilo: 'Vas bien: llevas usado menos de la mitad de tu presupuesto de esta quincena.\n\nSigue registrando tus gastos para mantenerte así hasta el cierre del periodo.',
   alerta: 'Ya usaste entre el 50% y el 89% de tu presupuesto de esta quincena.\n\nNo es grave todavía, pero conviene que revises en qué categorías estás gastando más antes de que se acabe el periodo.',
@@ -5819,20 +5809,21 @@ const TEXTOS_ANIMO_INFO = {
 };
 function mostrarInfoAnimo() {
   const animo = mostrandoRadiante() ? 'radiante' : estadoAnimoBase();
-  mostrarInfo(NOMBRES_ANIMO[animo], TEXTOS_ANIMO_INFO[animo]);
+  mostrarInfo(NOMBRES_ANIMO[animo], TEXTOS_ANIMO_INFO[animo], imagenEstadoGato(), true);
 }
 
-// --- Racha semanal: fila de "gemas" de la semana en curso ---
-function renderRachaGems() {
-  const row = document.getElementById('gato-gem-row');
-  if (!row) return;
-  const semana = rachaSemanaActual();
-  row.innerHTML = semana.map(function(d) {
-    const cls = 'gato-gem' + (d.done ? ' done' : '') + (d.esHoy ? ' hoy' : '');
-    return '<div class="' + cls + '">' + d.label + '</div>';
-  }).join('');
-  const mult = document.getElementById('gato-racha-mult');
-  if (mult) mult.textContent = 'x' + multiplicadorRacha() + ' XP';
+// --- Para el siguiente nivel: barra tipo videojuego (segmentos en flecha) ---
+function renderSiguienteBarra(pct) {
+  const track = document.getElementById('gato-siguiente-bar');
+  if (!track) return;
+  const total = 10;
+  const llenos = Math.round((pct / 100) * total);
+  track.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'gato-siguiente-seg' + (i < llenos ? ' on' : '');
+    track.appendChild(seg);
+  }
 }
 
 // --- Boost: ofrece un uso disponible como notificación, y muestra el
@@ -6096,7 +6087,6 @@ function renderPantallaGato() {
     : 'Nivel ' + nivel + ' · ' + nivelInfo.nombre;
   document.getElementById('gato-avatar-animo-img').src = imagenEstadoGato();
   document.getElementById('gato-avatar-animo').textContent = NOMBRES_ANIMO[animo];
-  document.getElementById('gato-avatar-animo-detalle').textContent = TEXTOS_ANIMO_CORTO[animo] || '';
 
   const siguiente = nivel < 10 ? nivel + 1 : null;
   const progresoEl = document.getElementById('gato-avatar-progreso');
@@ -6108,19 +6098,18 @@ function renderPantallaGato() {
   const sigBadge = document.getElementById('gato-siguiente-badge');
   const sigNombre = document.getElementById('gato-siguiente-nombre');
   const sigFalta = document.getElementById('gato-siguiente-falta');
-  const sigBar = document.getElementById('gato-siguiente-bar-fill');
   if (siguiente) {
     const prog = progresoHaciaNivel(siguiente);
     subEl.textContent = prog.xpActual + ' / ' + prog.xpUmbral + ' XP';
     barFill.style.width = prog.pct + '%';
     xpActualEl.textContent = prog.xpActual + ' XP';
     xpUmbralEl.textContent = prog.xpUmbral + ' XP';
+    renderSiguienteBarra(prog.pct);
     const sigInfo = NIVELES_GATO.find(function(nv) { return nv.n === siguiente; });
     siguienteCard.style.display = '';
     sigBadge.textContent = siguiente;
     sigNombre.textContent = 'Nivel ' + siguiente + ' · ' + sigInfo.nombre;
     sigFalta.textContent = 'Te faltan ' + Math.max(0, prog.xpUmbral - prog.xpActual) + ' XP';
-    sigBar.style.width = prog.pct + '%';
     progresoEl.textContent = mensajeDetalleNivel(siguiente);
   } else {
     const xp = totalXPGato();
@@ -6132,7 +6121,6 @@ function renderPantallaGato() {
     progresoEl.textContent = '¡Alcanzaste el nivel máximo! Ya tienes ' + xp + ' XP acumulada.';
   }
 
-  renderRachaGems();
   const desbloqueados = config.gatoLogrosDesbloqueados || [];
   const badge = document.getElementById('gato-vit-badge-count');
   if (badge) badge.textContent = desbloqueados.length + '/8';
@@ -6184,13 +6172,6 @@ document.getElementById('btn-reveal-continuar').addEventListener('click', functi
 
 document.getElementById('gato-boost-tab').addEventListener('click', function() {
   document.getElementById('gato-boost-detail').classList.toggle('show');
-});
-document.getElementById('btn-racha-info').addEventListener('click', function(e) {
-  e.stopPropagation();
-  mostrarInfo('Racha semanal',
-    'Cada día que no te excedes del presupuesto, ganas XP extra.\n\n' +
-    'Más días seguidos = multiplicador más alto (x1, x2, x3) y más XP.\n\n' +
-    'Si un día te excedes, la racha se reinicia.');
 });
 document.getElementById('btn-boost-info').addEventListener('click', function(e) {
   e.stopPropagation();
