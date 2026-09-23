@@ -775,9 +775,6 @@ select option { background: var(--card-solid); color: var(--ink); }
 .sello-lbl { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .sello-val { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 800; }
 .sello-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 2px; }
-.sello-bar-wrap { height: 7px; border-radius: 4px; background: rgba(0,0,0,0.3); overflow: hidden; margin-top: 9px; }
-.sello-bar-fill { height: 100%; }
-.sello-card-btn { all: unset; display: block; width: 100%; cursor: pointer; }
 
 .gato-racha-strip { margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.1); text-align: left; position: relative; z-index: 1; }
 .gato-racha-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
@@ -1917,22 +1914,6 @@ select option { background: var(--card-solid); color: var(--ink); }
         <button type="button" class="gato-info-btn" id="btn-gato-animo-info">?</button>
       </div>
       <div class="gato-animo-strip-detalle" id="gato-avatar-animo-detalle"></div>
-    </div>
-
-    <div class="sello-card" id="sello-mision-card" style="display:none">
-      <div class="sello-badge" style="transform:rotate(10deg)">
-        <svg class="sello-badge-ring" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#ff8a5c" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.7"/></svg>
-        <div class="sello-badge-core" style="border-color:#ff8a5c"><img src="icono-mision-semanal.png" alt="" style="transform:rotate(-10deg)"></div>
-        <span class="sello-badge-spark" style="transform:rotate(-10deg)">✦</span>
-      </div>
-      <button type="button" class="sello-card-btn" id="btn-sello-mision" aria-label="Ver misión de la semana">
-        <div class="sello-lbl">Misión semanal</div>
-        <div class="sello-row-top">
-          <span class="sello-val" id="sello-mision-titulo" style="font-size:14px">—</span>
-          <span id="sello-mision-count" style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;color:#ff8a5c"></span>
-        </div>
-        <div class="sello-bar-wrap"><div class="sello-bar-fill" id="sello-mision-bar" style="width:0%;background:#ff8a5c"></div></div>
-      </button>
     </div>
 
     <div class="gato-racha-strip">
@@ -5432,27 +5413,14 @@ function renderFloatIcons() {
 
   const missionBadge = document.getElementById('btn-float-mission');
   const missionCount = document.getElementById('float-mission-count');
-  const selloMisionCard = document.getElementById('sello-mision-card');
+  if (!missionBadge) return;
   const m = config.misionActual;
-  if (!m || m.estado === 'fallida') {
-    if (missionBadge) missionBadge.classList.remove('show');
-    if (selloMisionCard) selloMisionCard.style.display = 'none';
-    return;
-  }
+  if (!m || m.estado === 'fallida') { missionBadge.classList.remove('show'); return; }
+  missionBadge.classList.add('show');
   const t = MISIONES_CATALOGO.find(function(x) { return x.id === m.templateId; });
   const meta = t ? t.meta : 1;
-  const progreso = Math.min(m.progreso, meta);
-  if (missionBadge) {
-    missionBadge.classList.add('show');
-    if (missionCount) missionCount.textContent = progreso + '/' + meta;
-    missionBadge.classList.toggle('pulsando', (m.progreso > 0 && m.estado !== 'completada'));
-  }
-  if (selloMisionCard && t) {
-    selloMisionCard.style.display = 'block';
-    document.getElementById('sello-mision-titulo').textContent = m.estado === 'completada' ? '¡Misión cumplida!' : t.titulo;
-    document.getElementById('sello-mision-count').textContent = progreso + '/' + meta;
-    document.getElementById('sello-mision-bar').style.width = (Math.round((progreso / meta) * 100)) + '%';
-  }
+  missionCount.textContent = Math.min(m.progreso, meta) + '/' + meta;
+  missionBadge.classList.toggle('pulsando', (m.progreso > 0 && m.estado !== 'completada'));
 }
 function abrirModalMision() {
   const m = config.misionActual;
@@ -5481,7 +5449,6 @@ function abrirModalMision() {
 }
 document.getElementById('btn-float-trophy').addEventListener('click', function() { abrirSheetGato('especiales'); });
 document.getElementById('btn-float-mission').addEventListener('click', abrirModalMision);
-document.getElementById('btn-sello-mision').addEventListener('click', abrirModalMision);
 document.getElementById('mm-btn-cerrar').addEventListener('click', function() {
   document.getElementById('overlay-mision').classList.remove('show');
 });
